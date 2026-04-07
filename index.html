@@ -69,7 +69,12 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 /* ── DEFECATIE ── */
 .def-tabel{width:100%;border-collapse:collapse}
 .def-tabel th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:normal}
-.def-tabel th:not(:first-child){text-align:center}
+.def-tabel th:not(:first-child):not(:nth-child(2)){text-align:center}
+.def-nz-cb{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:0 auto;transition:all .15s}
+.def-nz-cb:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.kaart-hdr-nz{display:flex;align-items:center;gap:6px;font-size:10px;text-transform:none;font-weight:normal;color:var(--warn)}
+.kaart-hdr-nz input[type=checkbox]{appearance:none;width:14px;height:14px;border:2px solid var(--warn);border-radius:3px;cursor:pointer;background:var(--surf2);transition:all .15s;vertical-align:middle}
+.kaart-hdr-nz input[type=checkbox]:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
 .def-tabel td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
 .def-tabel tr:last-child td{border-bottom:none}
 .def-kamer{font-size:12px;font-weight:bold;color:var(--acc)}
@@ -176,6 +181,42 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 #pin-ok:active{background:var(--acc);color:#fff}
 #pin-annul{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-top:8px;font-family:var(--mono)}
 
+/* ── OVERDRACHT MODAL ── */
+#overdracht-modal{display:none;position:fixed;inset:0;background:var(--bg);z-index:700;overflow-y:auto;padding:0}
+#overdracht-modal.open{display:block}
+#overdracht-inner{max-width:700px;margin:0 auto;padding:20px 16px 40px}
+#overdracht-inner h2{font-size:16px;color:var(--acc);margin-bottom:4px;letter-spacing:.06em}
+#overdracht-inner .od-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+#overdracht-inner h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--warn);margin:18px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px}
+#overdracht-inner .od-item{font-size:13px;padding:3px 0;color:var(--text)}
+#overdracht-inner .od-kamer{color:var(--acc);font-weight:bold}
+#overdracht-inner .od-leeg{font-size:12px;color:var(--muted);font-style:italic}
+#overdracht-inner .od-tekst{white-space:pre-wrap;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:13px;font-family:var(--mono);margin-top:4px;color:var(--text)}
+.od-check-lijst{list-style:none;margin:16px 0;padding:0}
+.od-check-lijst li{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:var(--text)}
+.od-check-lijst input[type=checkbox]{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);flex-shrink:0;transition:all .15s}
+.od-check-lijst input[type=checkbox]:checked{background:var(--green);border-color:var(--green);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+#od-toolbar{display:flex;gap:8px;padding:10px 0;align-items:center;border-top:1px solid var(--border);margin-top:16px}
+#od-toolbar .btn{font-size:12px;padding:6px 12px}
+.btn-warn{border-color:var(--warn);color:var(--warn)}
+.btn-warn:active{background:var(--warn-dim)}
+
+@media print{
+  body>*:not(#overdracht-modal){display:none!important}
+  #overdracht-modal{position:static;background:#fff;color:#000;display:block!important}
+  #overdracht-inner{padding:10px;max-width:100%}
+  #overdracht-inner h2{color:#000}
+  #overdracht-inner h3{color:#333;border-color:#ccc}
+  #overdracht-inner .od-sub{color:#666}
+  #overdracht-inner .od-item{color:#000}
+  #overdracht-inner .od-kamer{color:#000}
+  #overdracht-inner .od-leeg{color:#999}
+  #overdracht-inner .od-tekst{background:#f5f5f5;border-color:#ccc;color:#000}
+  #od-toolbar{display:none!important}
+  .od-check-lijst input[type=checkbox]{appearance:auto}
+  .od-check-lijst li{color:#000}
+}
+
 @media(max-width:480px){
   .douche-grid{grid-template-columns:1fr 1fr}
   .douche-item:nth-child(3n){border-right:1px solid var(--border)}
@@ -230,6 +271,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <table class="def-tabel">
       <thead>
         <tr>
+          <th style="text-align:center;color:var(--warn)" title="Nachtzorg">NZ</th>
           <th>Kamer</th>
           <th>Normaal</th>
           <th>Veel</th>
@@ -256,10 +298,17 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <textarea class="meded-txt" id="meded" placeholder="Vrije tekst voor overdracht…"></textarea>
   </div>
 
+  <!-- NACHTZORG OVERIG -->
+  <div class="kaart">
+    <div class="kaart-hdr">Nachtzorg overig</div>
+    <textarea class="meded-txt" id="meded-nz" placeholder="Vrije tekst voor Nachtzorg overdracht…"></textarea>
+  </div>
+
   <!-- FOOTER -->
   <div class="kaart">
     <div class="footer-rij">
       <button class="btn btn-acc" onclick="openBeheer()">⚙ Beheer</button>
+      <button class="btn btn-warn" id="btn-overdracht-nz" style="display:none" onclick="openOverdracht()">⇒ Overdracht Nachtzorg</button>
       <button class="btn btn-red" id="reset-btn" style="display:none" onclick="resetDienst()">↺ Reset dienst</button>
     </div>
   </div>
@@ -282,6 +331,14 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
         <label class="beh-label">Drempel</label>
         <input class="beh-input" id="beh-drempel" type="number" min="1" max="14" value="3" style="max-width:60px">
         <span style="font-size:11px;color:var(--muted)">dagen</span>
+      </div>
+    </div>
+
+    <div class="beh-sectie">
+      <h3>E-mail overdracht Nachtzorg</h3>
+      <div class="beh-rij">
+        <label class="beh-label">E-mail</label>
+        <input class="beh-input" id="beh-email-nz" type="email" placeholder="nachtzorg@voorbeeld.nl">
       </div>
     </div>
 
@@ -339,6 +396,11 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <button id="pin-ok" onclick="pinBevestig()">Activeren</button>
     <br><button id="pin-annul" onclick="pinSluit()">Annuleren</button>
   </div>
+</div>
+
+<!-- OVERDRACHT MODAL -->
+<div id="overdracht-modal">
+  <div id="overdracht-inner"></div>
 </div>
 
 <script>
@@ -512,7 +574,7 @@ function slaanDoucheLaatste(){
 function laadState(sl){
   const raw=localStorage.getItem(sl);
   if(raw){ try{ return JSON.parse(raw); }catch(e){} }
-  return { hh:{}, douche:{}, def:{}, clienten:{}, meded:'', extraTaken:[] };
+  return { hh:{}, douche:{}, def:{}, clienten:{}, meded:'', mededNZ:'', defNZ:{}, extraTaken:[] };
 }
 
 function slaanOpState(){
@@ -746,6 +808,7 @@ function renderDouche(datum, dagNr){
 function dienst(){ return document.getElementById('dienst-sel').value; }
 
 function renderDef(datum){
+  if(!state.defNZ) state.defNZ={};
   const tbody=document.getElementById('def-tbody');
   tbody.innerHTML='';
   KAMERS.forEach(k=>{
@@ -753,15 +816,23 @@ function renderDef(datum){
     const dagen=dagVerschilDef(k.nr,datum);
     const klasse=defDagKlasse(dagen);
     const tekst=defDagTekst(dagen);
+    const nzChecked=!!state.defNZ[k.nr];
 
     const tr=document.createElement('tr');
     tr.innerHTML=`
+      <td style="text-align:center"><input class="def-nz-cb" type="checkbox" id="def-nz-${k.nr}" data-kamer="${k.nr}" ${nzChecked?'checked':''}></td>
       <td><span class="def-kamer">${k.nr}</span></td>
       <td style="text-align:center"><input class="def-cb normaal" type="checkbox" data-kamer="${k.nr}" data-hw="Normaal" ${st.hw==='Normaal'?'checked':''}></td>
       <td style="text-align:center"><input class="def-cb veel" type="checkbox" data-kamer="${k.nr}" data-hw="Veel" ${st.hw==='Veel'?'checked':''}></td>
       <td style="text-align:center"><input class="def-cb weinig" type="checkbox" data-kamer="${k.nr}" data-hw="Weinig" ${st.hw==='Weinig'?'checked':''}></td>
       <td><span class="${klasse}" style="font-size:11px">${tekst}</span></td>
     `;
+
+    // NZ checkbox
+    tr.querySelector('.def-nz-cb').addEventListener('change',e=>{
+      state.defNZ[e.target.dataset.kamer]=e.target.checked;
+      autoSave();
+    });
 
     // Mutual exclusion checkboxes
     tr.querySelectorAll('.def-cb').forEach(cb=>{
@@ -820,6 +891,13 @@ function renderMeded(){
   el.oninput=()=>{ state.meded=el.value; autoSave(); };
 }
 
+function renderMededNZ(){
+  if(state.mededNZ===undefined) state.mededNZ='';
+  const el=document.getElementById('meded-nz');
+  el.value=state.mededNZ||'';
+  el.oninput=()=>{ state.mededNZ=el.value; autoSave(); };
+}
+
 function updateBadges(dagNr, ds){
   const taken=getTaken(dagNr,ds);
   const hhGed=taken.filter(t=>state.hh[t.id]).length;
@@ -846,7 +924,10 @@ function renderAll(datum, dagNr, ds){
   renderDef(datum);
   renderClienten();
   renderMeded();
+  renderMededNZ();
   renderNotificaties(datum,dagNr);
+  // Toon overdracht-knop alleen bij laat-dienst
+  document.getElementById('btn-overdracht-nz').style.display=(ds==='laat')?'':'none';
   setTimeout(expandAlleTextareas,50);
 }
 
@@ -865,7 +946,7 @@ function wissel(){
 
 function resetDienst(){
   if(!confirm('Alle data van deze dienst wissen?')) return;
-  state={hh:{},douche:{},def:{},clienten:{},meded:'',extraTaken:[]};
+  state={hh:{},douche:{},def:{},clienten:{},meded:'',mededNZ:'',defNZ:{},extraTaken:[]};
   slaanOpState();
   wissel();
 }
@@ -933,6 +1014,7 @@ function openBeheerModal(){
   });
 
   document.getElementById('beh-drempel').value=cfg.drempel||3;
+  document.getElementById('beh-email-nz').value=cfg.emailNachtzorg||'';
   renderExtraTakenBeheer();
   document.getElementById('beheer-modal').classList.add('open');
 }
@@ -953,6 +1035,7 @@ function slaanBeheerOp(){
   });
   cfg.doucheConfig=dc;
   cfg.drempel=parseInt(document.getElementById('beh-drempel').value)||3;
+  cfg.emailNachtzorg=(document.getElementById('beh-email-nz').value||'').trim();
   slaanCfgOp();
   sluitBeheer();
   wissel();
@@ -1202,6 +1285,8 @@ function ipInvoegen(){
   const kamerNr = veld.dataset.kamer;
   if(kamerNr){
     state.clienten[kamerNr]=veld.value;
+  } else if(veld.id==='meded-nz'){
+    state.mededNZ=veld.value;
   } else {
     state.meded=veld.value;
   }
@@ -1237,7 +1322,7 @@ function ipReset(){
 
 // Bijhouden welk veld actief is
 document.addEventListener('focusin',e=>{
-  if(e.target.matches('.client-txt,#meded')) ipDoelVeld=e.target;
+  if(e.target.matches('.client-txt,#meded,#meded-nz')) ipDoelVeld=e.target;
 });
 
 // ── DRAG ────────────────────────────────────────────────────
@@ -1319,6 +1404,85 @@ function pushInteractieGAS(rec){
 
 
 
+// ═══════════════════════════════════════════════════════════
+// OVERDRACHT NACHTZORG
+// ═══════════════════════════════════════════════════════════
+
+function openOverdracht(){
+  const datum=document.getElementById('datum-pick').value;
+  const ds=document.getElementById('dienst-sel').value;
+  const emailNZ=cfg.emailNachtzorg||'';
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><h2>Overdracht Nachtzorg</h2>
+    <div class="od-sub">${datum} — dienst: ${ds}</div></div>
+    <button class="btn" onclick="sluitOverdracht()" style="font-size:18px;padding:4px 10px;line-height:1">✕</button>
+  </div>`;
+
+  // Defecatie — alleen rijen met NZ aangevinkt
+  const defItems=[];
+  if(!state.defNZ) state.defNZ={};
+  KAMERS.forEach(k=>{
+    if(!state.defNZ[k.nr]) return;
+    const st=state.def[k.nr]||{};
+    if(st.hw) defItems.push({kamer:k.nr, hw:st.hw});
+  });
+  html+=`<h3>Defecatie (doorgezet naar Nachtzorg)</h3>`;
+  if(defItems.length){
+    defItems.forEach(d=>{ html+=`<div class="od-item"><span class="od-kamer">${d.kamer}</span> — ${d.hw}</div>`; });
+  } else {
+    html+=`<div class="od-leeg">Geen defecatie-registraties doorgezet.</div>`;
+  }
+
+  // Bijzonderheden
+  html+=`<h3>Bijzonderheden per cliënt</h3>`;
+  let heeftBijz=false;
+  KAMERS.forEach(k=>{
+    const txt=(state.clienten[k.nr]||'').trim();
+    if(!txt) return;
+    heeftBijz=true;
+    html+=`<div class="od-item"><span class="od-kamer">${k.nr}</span></div><div class="od-tekst">${escHtml(txt)}</div>`;
+  });
+  if(!heeftBijz) html+=`<div class="od-leeg">Geen bijzonderheden.</div>`;
+
+  // Nog te doen
+  const mededTxt=(state.meded||'').trim();
+  html+=`<h3>Nog te doen / mededelingen</h3>`;
+  html+=mededTxt?`<div class="od-tekst">${escHtml(mededTxt)}</div>`:`<div class="od-leeg">—</div>`;
+
+  // Nachtzorg overig
+  const nzTxt=(state.mededNZ||'').trim();
+  html+=`<h3>Nachtzorg overig</h3>`;
+  html+=nzTxt?`<div class="od-tekst">${escHtml(nzTxt)}</div>`:`<div class="od-leeg">—</div>`;
+
+  // Checkboxen
+  const mailHref=emailNZ?`mailto:${encodeURIComponent(emailNZ)}?subject=${encodeURIComponent('Overdracht Nachtzorg '+datum)}&body=${encodeURIComponent('Zie bijlage / PDF.')}`:'';
+  html+=`<h3>Bevestiging overdracht</h3>
+  <ul class="od-check-lijst">
+    <li><input type="checkbox"> Opslaan</li>
+    <li><input type="checkbox"> Opslaan als PDF</li>
+    <li><input type="checkbox"> ${emailNZ?`<a href="${mailHref}" style="color:var(--acc);text-decoration:underline">E-mail aan ${escHtml(emailNZ)}</a>`:'E-mail aan vast adres <span style="color:var(--muted)">(configureer in Beheer)</span>'}</li>
+    <li><input type="checkbox"> Digitaal bericht / softcopy</li>
+    <li><input type="checkbox"> Overdr. in persoon — face to face + PDF print</li>
+  </ul>`;
+
+  html+=`<div id="od-toolbar">
+    <button class="btn btn-acc" onclick="window.print()">🖨 Afdrukken</button>
+    <button class="btn" onclick="sluitOverdracht()">Sluiten</button>
+  </div>`;
+
+  document.getElementById('overdracht-inner').innerHTML=html;
+  document.getElementById('overdracht-modal').classList.add('open');
+}
+
+function sluitOverdracht(){
+  document.getElementById('overdracht-modal').classList.remove('open');
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
 // ── KLOK ──
 (function(){
   function tick(){
@@ -1355,6 +1519,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Modal sluiten bij klik buiten box
   document.getElementById('beheer-modal').addEventListener('click',e=>{
     if(e.target===document.getElementById('beheer-modal')) sluitBeheer();
+  });
+  document.getElementById('overdracht-modal').addEventListener('click',e=>{
+    if(e.target===document.getElementById('overdracht-modal')) sluitOverdracht();
   });
 
   // Eerste render
