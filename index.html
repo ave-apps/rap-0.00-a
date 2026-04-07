@@ -206,16 +206,13 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
   body>*:not(#overdracht-modal){display:none!important}
   #overdracht-modal{position:static;display:block!important;padding:0}
   #overdracht-inner{padding:10px;max-width:100%}
-  #overdracht-inner h2{color:#000!important;font-size:18px}
-  #overdracht-inner h3{color:#333!important;border-color:#ccc!important}
+  #overdracht-inner h2{font-size:18px}
+  #overdracht-inner h3{color:#333!important}
   #overdracht-inner .od-sub{color:#666!important}
-  #overdracht-inner .od-item{color:#000!important}
-  #overdracht-inner .od-kamer{color:#000!important;font-weight:bold}
   #overdracht-inner .od-leeg{color:#999!important}
-  #overdracht-inner .od-tekst{background:#f5f5f5!important;border:1px solid #ccc!important;color:#000!important}
+  #overdracht-inner .od-tekst{background:#f5f5f5!important;border:1px solid #ccc!important}
   #od-toolbar{display:none!important}
   .od-check-lijst input[type=checkbox]{appearance:auto}
-  .od-check-lijst li{color:#000!important}
   a{color:#000!important;text-decoration:none!important}
 }
 
@@ -342,6 +339,20 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
         <label class="beh-label">E-mail</label>
         <input class="beh-input" id="beh-email-nz" type="email" placeholder="nachtzorg@voorbeeld.nl">
       </div>
+    </div>
+
+    <div class="beh-sectie">
+      <h3>Opslagpad PDF overdracht</h3>
+      <div class="beh-rij">
+        <label class="beh-label" style="min-width:50px">Pad</label>
+        <input class="beh-input" id="beh-pdf-pad" type="text" placeholder="bijv. C:\Users\...\Downloads of G:\Gebouw5\Rap\">
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Wordt getoond bij overdracht als herinnering voor de medewerker.</div>
+    </div>
+
+    <div class="beh-sectie">
+      <h3>Bekende pincodes</h3>
+      <div id="beh-pincode-lijst" style="font-size:12px"></div>
     </div>
 
     <div class="beh-sectie">
@@ -1017,6 +1028,24 @@ function openBeheerModal(){
 
   document.getElementById('beh-drempel').value=cfg.drempel||3;
   document.getElementById('beh-email-nz').value=cfg.emailNachtzorg||'';
+  document.getElementById('beh-pdf-pad').value=cfg.pdfPad||'';
+
+  // Pincode-lijst renderen
+  const pins=laadPincodes();
+  const pinLijst=document.getElementById('beh-pincode-lijst');
+  const namen=Object.keys(pins);
+  if(namen.length){
+    pinLijst.innerHTML=namen.map(n=>
+      `<div style="display:flex;gap:12px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--acc);min-width:100px">${escHtmlBeh(n)}</span>
+        <span style="color:var(--text);letter-spacing:.15em">${escHtmlBeh(pins[n])}</span>
+        <button class="btn btn-red" style="font-size:10px;padding:2px 7px;margin-left:auto" onclick="verwijderPincode('${escHtmlBeh(n)}')">✕ Reset</button>
+      </div>`
+    ).join('');
+  } else {
+    pinLijst.innerHTML='<span style="color:var(--muted)">Nog geen pincodes geregistreerd.</span>';
+  }
+
   renderExtraTakenBeheer();
   document.getElementById('beheer-modal').classList.add('open');
 }
@@ -1038,6 +1067,7 @@ function slaanBeheerOp(){
   cfg.doucheConfig=dc;
   cfg.drempel=parseInt(document.getElementById('beh-drempel').value)||3;
   cfg.emailNachtzorg=(document.getElementById('beh-email-nz').value||'').trim();
+  cfg.pdfPad=(document.getElementById('beh-pdf-pad').value||'').trim();
   slaanCfgOp();
   sluitBeheer();
   wissel();
@@ -1106,6 +1136,17 @@ function laadPincodes(){
   try{ return JSON.parse(localStorage.getItem('rap-g5b-pincodes')||'{}'); }catch(e){ return {}; }
 }
 function slaanPincodesOp(pins){ localStorage.setItem('rap-g5b-pincodes',JSON.stringify(pins)); }
+
+function escHtmlBeh(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function verwijderPincode(naam){
+  if(!confirm(`Pincode van "${naam}" verwijderen? Bij volgende login kan een nieuwe worden ingesteld.`)) return;
+  const pins=laadPincodes();
+  delete pins[naam.toLowerCase()];
+  slaanPincodesOp(pins);
+  // Herrender lijst
+  openBeheerModal();
+}
 
 function ipTriggerKlik(){
   if(ipAuteur){
@@ -1414,14 +1455,46 @@ function openOverdracht(){
   const datum=document.getElementById('datum-pick').value;
   const ds=document.getElementById('dienst-sel').value;
   const emailNZ=cfg.emailNachtzorg||'';
+  const pdfPad=cfg.pdfPad||'';
 
+  // ── Bouw platte tekst voor e-mailbody ──────────────────────
+  function ptDefecatie(){
+    const items=[];
+    if(!state.defNZ) state.defNZ={};
+    KAMERS.forEach(k=>{
+      if(!state.defNZ[k.nr]) return;
+      const st=state.def[k.nr]||{};
+      if(st.hw) items.push(`  ${k.nr} — ${st.hw}`);
+    });
+    return items.length ? items.join('\n') : '  (geen)';
+  }
+  function ptBijz(){
+    const items=[];
+    KAMERS.forEach(k=>{
+      const txt=(state.clienten[k.nr]||'').trim();
+      if(txt) items.push(`  ${k.nr}: ${txt}`);
+    });
+    return items.length ? items.join('\n') : '  (geen)';
+  }
+  const ptMeded=(state.meded||'').trim()||'(geen)';
+  const ptNZ=(state.mededNZ||'').trim()||'(geen)';
+
+  const emailBodyTekst=
+    `Overdracht Nachtzorg — ${datum} — dienst: ${ds}\n` +
+    `${'─'.repeat(40)}\n\n` +
+    `DEFECATIE (doorgezet naar Nachtzorg)\n${ptDefecatie()}\n\n` +
+    `BIJZONDERHEDEN PER CLIËNT\n${ptBijz()}\n\n` +
+    `NOG TE DOEN / MEDEDELINGEN\n  ${ptMeded}\n\n` +
+    `NACHTZORG OVERIG\n  ${ptNZ}\n`;
+
+  // ── HTML opbouw ────────────────────────────────────────────
   let html=`<div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div><h2>Overdracht Nachtzorg</h2>
     <div class="od-sub">${datum} — dienst: ${ds}</div></div>
     <button class="btn" onclick="sluitOverdracht()" style="font-size:18px;padding:4px 10px;line-height:1">✕</button>
   </div>`;
 
-  // Defecatie — alleen rijen met NZ aangevinkt
+  // Defecatie
   const defItems=[];
   if(!state.defNZ) state.defNZ={};
   KAMERS.forEach(k=>{
@@ -1459,19 +1532,19 @@ function openOverdracht(){
 
   // Checkboxen
   const mailSubject=encodeURIComponent('Overdracht Nachtzorg '+datum);
-  const mailBody=encodeURIComponent('Overdracht Nachtzorg '+datum+'\nZie bijgevoegd document / PDF.');
+  const mailBody=encodeURIComponent(emailBodyTekst);
   const mailHref=emailNZ?`mailto:${encodeURIComponent(emailNZ)}?subject=${mailSubject}&body=${mailBody}`:'';
+
   html+=`<h3>Bevestiging overdracht</h3>
   <ul class="od-check-lijst">
     <li><input type="checkbox" id="od-cb-opslaan"> Opslaan</li>
-    <li><input type="checkbox" id="od-cb-pdf"> Opslaan als PDF</li>
+    <li><input type="checkbox" id="od-cb-pdf"> Opslaan als PDF${pdfPad?` <span style="color:var(--muted);font-size:11px">→ ${escHtml(pdfPad)}</span>`:''}</li>
     <li><input type="checkbox" id="od-cb-email"> ${emailNZ?`E-mail aan <strong>${escHtml(emailNZ)}</strong>`:'E-mail aan vast adres <span style="color:var(--muted)">(configureer in Beheer)</span>'}</li>
     <li><input type="checkbox" id="od-cb-digitaal"> Digitaal bericht / softcopy</li>
     <li><input type="checkbox" id="od-cb-print"> Overdr. in persoon — face to face + PDF print</li>
   </ul>`;
 
-  // Escape mailHref for inline onclick attribute
-  const mailHrefEsc=mailHref.replace(/'/g,"\\'");
+  const mailHrefEsc=mailHref.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   html+=`<div id="od-toolbar">
     <button class="btn btn-acc" onclick="odUitvoeren('${mailHrefEsc}')">✓ Uitvoeren</button>
     <button class="btn" onclick="sluitOverdracht()">Sluiten</button>
@@ -1486,11 +1559,11 @@ function sluitOverdracht(){
 }
 
 function odUitvoeren(mailHref){
-  const cbOpslaan   = document.getElementById('od-cb-opslaan');
-  const cbPdf       = document.getElementById('od-cb-pdf');
-  const cbEmail     = document.getElementById('od-cb-email');
-  const cbDigitaal  = document.getElementById('od-cb-digitaal');
-  const cbPrint     = document.getElementById('od-cb-print');
+  const cbOpslaan  =document.getElementById('od-cb-opslaan');
+  const cbPdf      =document.getElementById('od-cb-pdf');
+  const cbEmail    =document.getElementById('od-cb-email');
+  const cbDigitaal =document.getElementById('od-cb-digitaal');
+  const cbPrint    =document.getElementById('od-cb-print');
 
   const wil={
     opslaan:  cbOpslaan  && cbOpslaan.checked,
@@ -1505,25 +1578,25 @@ function odUitvoeren(mailHref){
     return;
   }
 
-  // E-mail openen via mailto
-  if(wil.email && mailHref){
-    window.location.href = mailHref;
-  } else if(wil.email && !mailHref){
-    alert('Geen e-mailadres ingesteld. Configureer dit in Beheer.');
+  // E-mail — opent mail-app met volledige overdrachttekst in body
+  if(wil.email){
+    if(mailHref){
+      window.location.href=mailHref;
+    } else {
+      alert('Geen e-mailadres ingesteld. Configureer dit in Beheer.');
+    }
   }
 
-  // Afdrukken / PDF — alleen als expliciet aangevinkt
+  // Print/PDF — alleen als expliciet aangevinkt; kleine delay bij combo met e-mail
   if(wil.print || wil.pdf){
-    // Korte delay zodat mailto browser-actie niet conflicteert
-    setTimeout(()=>{ window.print(); }, wil.email ? 800 : 0);
+    setTimeout(()=>{ window.print(); }, wil.email ? 900 : 0);
   }
 
-  // Opslaan / digitaal: alleen visuele bevestiging (state is al opgeslagen)
-  if(wil.opslaan || wil.digitaal){
-    const acties=[];
-    if(wil.opslaan)  acties.push('Opgeslagen ✓');
-    if(wil.digitaal) acties.push('Digitaal bericht — zelf versturen via gewenst kanaal ✓');
-    // Toon bevestiging in de toolbar
+  // Opslaan / digitaal: bevestiging tonen
+  const acties=[];
+  if(wil.opslaan)   acties.push('Opgeslagen ✓');
+  if(wil.digitaal)  acties.push('Digitaal bericht — zelf versturen ✓');
+  if(acties.length){
     const toolbar=document.getElementById('od-toolbar');
     if(toolbar){
       const bevestig=document.createElement('span');
