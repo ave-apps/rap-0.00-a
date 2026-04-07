@@ -202,19 +202,21 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .btn-warn:active{background:var(--warn-dim)}
 
 @media print{
+  *{background:#fff!important;color:#000!important;border-color:#ccc!important;box-shadow:none!important}
   body>*:not(#overdracht-modal){display:none!important}
-  #overdracht-modal{position:static;background:#fff;color:#000;display:block!important}
+  #overdracht-modal{position:static;display:block!important;padding:0}
   #overdracht-inner{padding:10px;max-width:100%}
-  #overdracht-inner h2{color:#000}
-  #overdracht-inner h3{color:#333;border-color:#ccc}
-  #overdracht-inner .od-sub{color:#666}
-  #overdracht-inner .od-item{color:#000}
-  #overdracht-inner .od-kamer{color:#000}
-  #overdracht-inner .od-leeg{color:#999}
-  #overdracht-inner .od-tekst{background:#f5f5f5;border-color:#ccc;color:#000}
+  #overdracht-inner h2{color:#000!important;font-size:18px}
+  #overdracht-inner h3{color:#333!important;border-color:#ccc!important}
+  #overdracht-inner .od-sub{color:#666!important}
+  #overdracht-inner .od-item{color:#000!important}
+  #overdracht-inner .od-kamer{color:#000!important;font-weight:bold}
+  #overdracht-inner .od-leeg{color:#999!important}
+  #overdracht-inner .od-tekst{background:#f5f5f5!important;border:1px solid #ccc!important;color:#000!important}
   #od-toolbar{display:none!important}
   .od-check-lijst input[type=checkbox]{appearance:auto}
-  .od-check-lijst li{color:#000}
+  .od-check-lijst li{color:#000!important}
+  a{color:#000!important;text-decoration:none!important}
 }
 
 @media(max-width:480px){
@@ -1427,7 +1429,7 @@ function openOverdracht(){
     const st=state.def[k.nr]||{};
     if(st.hw) defItems.push({kamer:k.nr, hw:st.hw});
   });
-  html+=`<h3>Defecatie (doorgezet naar Nachtzorg)</h3>`;
+  html+=`<h3>Defecatie</h3>`;
   if(defItems.length){
     defItems.forEach(d=>{ html+=`<div class="od-item"><span class="od-kamer">${d.kamer}</span> — ${d.hw}</div>`; });
   } else {
@@ -1456,18 +1458,22 @@ function openOverdracht(){
   html+=nzTxt?`<div class="od-tekst">${escHtml(nzTxt)}</div>`:`<div class="od-leeg">—</div>`;
 
   // Checkboxen
-  const mailHref=emailNZ?`mailto:${encodeURIComponent(emailNZ)}?subject=${encodeURIComponent('Overdracht Nachtzorg '+datum)}&body=${encodeURIComponent('Zie bijlage / PDF.')}`:'';
+  const mailSubject=encodeURIComponent('Overdracht Nachtzorg '+datum);
+  const mailBody=encodeURIComponent('Overdracht Nachtzorg '+datum+'\nZie bijgevoegd document / PDF.');
+  const mailHref=emailNZ?`mailto:${encodeURIComponent(emailNZ)}?subject=${mailSubject}&body=${mailBody}`:'';
   html+=`<h3>Bevestiging overdracht</h3>
   <ul class="od-check-lijst">
-    <li><input type="checkbox"> Opslaan</li>
-    <li><input type="checkbox"> Opslaan als PDF</li>
-    <li><input type="checkbox"> ${emailNZ?`<a href="${mailHref}" style="color:var(--acc);text-decoration:underline">E-mail aan ${escHtml(emailNZ)}</a>`:'E-mail aan vast adres <span style="color:var(--muted)">(configureer in Beheer)</span>'}</li>
-    <li><input type="checkbox"> Digitaal bericht / softcopy</li>
-    <li><input type="checkbox"> Overdr. in persoon — face to face + PDF print</li>
+    <li><input type="checkbox" id="od-cb-opslaan"> Opslaan</li>
+    <li><input type="checkbox" id="od-cb-pdf"> Opslaan als PDF</li>
+    <li><input type="checkbox" id="od-cb-email"> ${emailNZ?`E-mail aan <strong>${escHtml(emailNZ)}</strong>`:'E-mail aan vast adres <span style="color:var(--muted)">(configureer in Beheer)</span>'}</li>
+    <li><input type="checkbox" id="od-cb-digitaal"> Digitaal bericht / softcopy</li>
+    <li><input type="checkbox" id="od-cb-print"> Overdr. in persoon — face to face + PDF print</li>
   </ul>`;
 
+  // Escape mailHref for inline onclick attribute
+  const mailHrefEsc=mailHref.replace(/'/g,"\\'");
   html+=`<div id="od-toolbar">
-    <button class="btn btn-acc" onclick="window.print()">🖨 Afdrukken</button>
+    <button class="btn btn-acc" onclick="odUitvoeren('${mailHrefEsc}')">✓ Uitvoeren</button>
     <button class="btn" onclick="sluitOverdracht()">Sluiten</button>
   </div>`;
 
@@ -1477,6 +1483,55 @@ function openOverdracht(){
 
 function sluitOverdracht(){
   document.getElementById('overdracht-modal').classList.remove('open');
+}
+
+function odUitvoeren(mailHref){
+  const cbOpslaan   = document.getElementById('od-cb-opslaan');
+  const cbPdf       = document.getElementById('od-cb-pdf');
+  const cbEmail     = document.getElementById('od-cb-email');
+  const cbDigitaal  = document.getElementById('od-cb-digitaal');
+  const cbPrint     = document.getElementById('od-cb-print');
+
+  const wil={
+    opslaan:  cbOpslaan  && cbOpslaan.checked,
+    pdf:      cbPdf      && cbPdf.checked,
+    email:    cbEmail    && cbEmail.checked,
+    digitaal: cbDigitaal && cbDigitaal.checked,
+    print:    cbPrint    && cbPrint.checked,
+  };
+
+  if(!wil.opslaan && !wil.pdf && !wil.email && !wil.digitaal && !wil.print){
+    alert('Vink minimaal één actie aan.');
+    return;
+  }
+
+  // E-mail openen via mailto
+  if(wil.email && mailHref){
+    window.location.href = mailHref;
+  } else if(wil.email && !mailHref){
+    alert('Geen e-mailadres ingesteld. Configureer dit in Beheer.');
+  }
+
+  // Afdrukken / PDF — alleen als expliciet aangevinkt
+  if(wil.print || wil.pdf){
+    // Korte delay zodat mailto browser-actie niet conflicteert
+    setTimeout(()=>{ window.print(); }, wil.email ? 800 : 0);
+  }
+
+  // Opslaan / digitaal: alleen visuele bevestiging (state is al opgeslagen)
+  if(wil.opslaan || wil.digitaal){
+    const acties=[];
+    if(wil.opslaan)  acties.push('Opgeslagen ✓');
+    if(wil.digitaal) acties.push('Digitaal bericht — zelf versturen via gewenst kanaal ✓');
+    // Toon bevestiging in de toolbar
+    const toolbar=document.getElementById('od-toolbar');
+    if(toolbar){
+      const bevestig=document.createElement('span');
+      bevestig.style.cssText='font-size:11px;color:var(--green);margin-left:8px';
+      bevestig.textContent=acties.join(' · ');
+      toolbar.appendChild(bevestig);
+    }
+  }
 }
 
 function escHtml(s){
