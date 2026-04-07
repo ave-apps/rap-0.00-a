@@ -98,6 +98,8 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .client-txt{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;resize:none;min-height:50px;width:100%;overflow:hidden}
 .client-txt:focus{outline:none;background:var(--surf2)}
 .client-txt::placeholder{color:var(--dimmer)}
+/* vroeg-spiegel: grijze readonly regel boven het bewerkbare vak */
+.client-vroeg-spiegel{font-size:12px;color:var(--muted);font-family:var(--mono);padding:5px 10px 0 10px;font-style:italic;white-space:pre-wrap;border-bottom:1px dashed var(--border);line-height:1.4;user-select:text}
 
 /* ── MEDED ── */
 .meded-txt{background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 12px;resize:none;min-height:80px;width:100%;line-height:1.6;overflow:hidden}
@@ -841,10 +843,11 @@ function renderDef(datum){
       <td><span class="${klasse}" style="font-size:11px">${tekst}</span></td>
     `;
 
-    // NZ checkbox
+    // NZ checkbox — direct opslaan, geen autoSave-vertraging
     tr.querySelector('.def-nz-cb').addEventListener('change',e=>{
+      if(!state.defNZ) state.defNZ={};
       state.defNZ[e.target.dataset.kamer]=e.target.checked;
-      autoSave();
+      slaanOpState();
     });
 
     // Mutual exclusion checkboxes
@@ -872,20 +875,84 @@ function renderDef(datum){
 function renderClienten(){
   const c=document.getElementById('lijst-clienten');
   c.innerHTML='';
+  const ds=document.getElementById('dienst-sel').value;
+  const datum=document.getElementById('datum-pick').value;
+
   KAMERS.forEach(k=>{
     const div=document.createElement('div');
     div.className='client-rij';
+
+    // Bij laat-dienst: laad vroeg-state van dezelfde dag
+    let vroegTekst='';
+    let vroegAuteur='';
+    if(ds==='laat'){
+      const vroegSleutel=buildSleutel(datum,'vroeg');
+      const vroegState=laadState(vroegSleutel);
+      const ruw=(vroegState.clienten[k.nr]||'').trim();
+      if(ruw){
+        // Haal auteur op uit log indien beschikbaar
+        const logKey='rap-g5b-bg00a_clientlog';
+        let auteurLabel='vroeg';
+        try{
+          const log=JSON.parse(localStorage.getItem(logKey)||'{}');
+          const entry=(log[datum]||{})[k.nr];
+          if(entry && entry.auteur) auteurLabel=entry.auteur;
+        }catch(e){}
+        vroegTekst=ruw;
+        vroegAuteur=auteurLabel;
+      }
+    }
+
+    // Huidige (laat) tekst — als leeg en vroeg heeft tekst, pre-fill met kopie
+    let huidigeTekst=state.clienten[k.nr]||'';
+
+    const naamDiv=`<div class="client-naam">${k.nr}</div>`;
+
+    // Vroeg-spiegel (alleen bij laat en als vroeg iets heeft)
+    let spiegelHtml='';
+    if(vroegTekst){
+      const tijdLabel=vroegAuteur!=='vroeg'?vroegAuteur:'vroeg';
+      spiegelHtml=`<div class="client-vroeg-spiegel" title="Notitie vroeg-dienst (readonly)">[${tijdLabel}] ${escHtml2(vroegTekst)}</div>`;
+    }
+
     div.innerHTML=`
-      <div class="client-naam">${k.nr}</div>
-      <textarea class="client-txt" id="cl_${k.nr}" data-kamer="${k.nr}" placeholder="—" rows="2">${state.clienten[k.nr]||''}</textarea>
+      <div style="border-right:1px solid var(--border);min-width:78px;flex-shrink:0">
+        <div class="client-naam" style="border-right:none">${k.nr}</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+        ${spiegelHtml}
+        <textarea class="client-txt" id="cl_${k.nr}" data-kamer="${k.nr}" placeholder="—" rows="2">${escHtml2(huidigeTekst)}</textarea>
+      </div>
       <button class="wis-btn" data-kamer="${k.nr}" style="display:none" title="Wis tekst" onclick="wisEigenVeld('${k.nr}')">🗑</button>
     `;
-    div.querySelector('textarea').addEventListener('input',e=>{
+
+    const ta=div.querySelector('textarea');
+    ta.addEventListener('input',e=>{
       state.clienten[k.nr]=e.target.value;
+      // Log wie schreef wanneer
+      logClientAuteur(datum, k.nr);
       autoSave();
     });
     c.appendChild(div);
   });
+}
+
+function escHtml2(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function logClientAuteur(datum, kamer){
+  if(!ipAuteur) return;
+  const logKey='rap-g5b-bg00a_clientlog';
+  try{
+    const log=JSON.parse(localStorage.getItem(logKey)||'{}');
+    if(!log[datum]) log[datum]={};
+    if(!log[datum][kamer]) log[datum][kamer]={};
+    log[datum][kamer].auteur=ipAuteur.naam;
+    log[datum][kamer].ts=new Date().toISOString();
+    log[datum][kamer].dienst=document.getElementById('dienst-sel').value;
+    localStorage.setItem(logKey,JSON.stringify(log));
+  }catch(e){}
 }
 
 function wisEigenVeld(kamer){
@@ -1470,9 +1537,15 @@ function openOverdracht(){
   }
   function ptBijz(){
     const items=[];
+    const vroegState=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
     KAMERS.forEach(k=>{
       const txt=(state.clienten[k.nr]||'').trim();
-      if(txt) items.push(`  ${k.nr}: ${txt}`);
+      const vroegTxt=vroegState?(vroegState.clienten[k.nr]||'').trim():'';
+      if(!txt && !vroegTxt) return;
+      let regel=`  ${k.nr}:`;
+      if(vroegTxt) regel+=`\n    [vroeg] ${vroegTxt}`;
+      if(txt) regel+=`\n    [laat]  ${txt}`;
+      items.push(regel);
     });
     return items.length ? items.join('\n') : '  (geen)';
   }
@@ -1509,14 +1582,18 @@ function openOverdracht(){
     html+=`<div class="od-leeg">Geen defecatie-registraties doorgezet.</div>`;
   }
 
-  // Bijzonderheden
+  // Bijzonderheden — toon vroeg-notities grijs + laat-notities normaal
   html+=`<h3>Bijzonderheden per cliënt</h3>`;
   let heeftBijz=false;
+  const vroegStateOd=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
   KAMERS.forEach(k=>{
     const txt=(state.clienten[k.nr]||'').trim();
-    if(!txt) return;
+    const vroegTxt=vroegStateOd?(vroegStateOd.clienten[k.nr]||'').trim():'';
+    if(!txt && !vroegTxt) return;
     heeftBijz=true;
-    html+=`<div class="od-item"><span class="od-kamer">${k.nr}</span></div><div class="od-tekst">${escHtml(txt)}</div>`;
+    html+=`<div class="od-item"><span class="od-kamer">${k.nr}</span></div>`;
+    if(vroegTxt) html+=`<div class="od-tekst" style="color:var(--muted);font-style:italic">[vroeg] ${escHtml(vroegTxt)}</div>`;
+    if(txt) html+=`<div class="od-tekst">${escHtml(txt)}</div>`;
   });
   if(!heeftBijz) html+=`<div class="od-leeg">Geen bijzonderheden.</div>`;
 
