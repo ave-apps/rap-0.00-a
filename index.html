@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rapportage BG 0.00 A</title>
+<style>
+:root {
+  --bg:#0f1117; --surf:#1a1d27; --surf2:#21253a; --border:#2e3350;
+  --acc:#3b82f6; --acc-dim:#1e3a5f; --green:#22c55e; --green-dim:#14532d;
+  --text:#e8eaf0; --muted:#6b7280; --dimmer:#374151;
+  --red:#ef4444; --red-dim:#3b0d0d; --warn:#f59e0b; --warn-dim:#3d2600;
+  --r:6px; --mono:'Courier New',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* ── HEADER ── */
+#hdr{background:var(--surf);border-bottom:2px solid var(--acc);padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:sticky;top:0;z-index:200}
+#hdr-title{font-size:12px;font-weight:bold;letter-spacing:.12em;color:var(--acc);text-transform:uppercase;white-space:nowrap}
+#hdr select,#hdr input[type=date]{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:4px 7px;border-radius:var(--r);cursor:pointer}
+#dienst-sel{font-weight:bold;color:var(--warn);border-color:var(--warn)}
+#save-ind{font-size:11px;color:var(--green);opacity:0;transition:opacity .4s;margin-left:auto;white-space:nowrap}
+#save-ind.show{opacity:1}
+#prog-wrap{height:3px;background:var(--surf2);border-radius:2px;overflow:hidden;width:100%}
+#prog-bar{height:100%;background:var(--green);border-radius:2px;transition:width .3s;width:0}
+
+/* ── NOTIFICATIES ── */
+#notif-zone{padding:0 10px}
+.notif{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--r);margin-top:8px;font-size:12px;border:1px solid}
+.notif-warn{background:var(--warn-dim);border-color:var(--warn);color:var(--warn)}
+.notif-ok{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.notif-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+
+/* ── MAIN ── */
+main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-direction:column;gap:10px}
+
+/* ── KAART ── */
+.kaart{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.kaart-hdr{background:var(--surf2);padding:6px 12px;font-size:11px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge{font-size:10px;background:var(--acc-dim);color:var(--acc);border-radius:3px;padding:1px 5px;white-space:nowrap}
+.badge.vol{background:var(--green-dim);color:var(--green)}
+
+/* ── TAAK-ITEMS ── */
+.taak-item{display:flex;align-items:flex-start;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.taak-item:last-child{border-bottom:none}
+.taak-item:active{background:var(--surf2)}
+.taak-item input[type=checkbox]{appearance:none;width:17px;height:17px;border:2px solid var(--border);border-radius:3px;cursor:pointer;flex-shrink:0;margin-top:1px;background:var(--surf2);transition:all .15s}
+.taak-item input[type=checkbox]:checked{background:var(--green);border-color:var(--green);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.taak-label{flex:1;font-size:13px;user-select:none;transition:color .15s}
+.taak-item.gedaan .taak-label{color:var(--muted);text-decoration:line-through}
+
+/* ── DOUCHE ── */
+.douche-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+.douche-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);cursor:pointer}
+.douche-item:nth-child(3n){border-right:none}
+.douche-item:nth-last-child(-n+3){border-bottom:none}
+.douche-item input[type=checkbox]{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;flex-shrink:0;background:var(--surf2);transition:all .15s}
+.douche-item input[type=checkbox]:checked{background:var(--acc);border-color:var(--acc);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.douche-label{font-size:12px;user-select:none}
+.douche-item.gedaan .douche-label{color:var(--muted)}
+.douche-kamer{font-size:10px;color:var(--muted);display:block}
+.douche-extra-tag{font-size:10px;color:var(--acc);font-style:italic;margin-left:auto;white-space:nowrap}
+.douche-last{font-size:10px;margin-left:auto;white-space:nowrap}
+.last-ok{color:var(--green)}
+.last-warn{color:var(--warn)}
+.last-alert{color:var(--red)}
+
+/* ── DEFECATIE ── */
+.def-tabel{width:100%;border-collapse:collapse}
+.def-tabel th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:normal}
+.def-tabel th:not(:first-child){text-align:center}
+.def-tabel td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.def-tabel tr:last-child td{border-bottom:none}
+.def-kamer{font-size:12px;font-weight:bold;color:var(--acc)}
+.def-cb{appearance:none;width:18px;height:18px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:0 auto;transition:all .15s}
+.def-cb.normaal:checked{background:var(--green);border-color:var(--green);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.def-cb.veel:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.def-cb.weinig:checked{background:var(--red);border-color:var(--red);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.def-dag-info{font-size:10px;margin-left:4px}
+.def-dag-groen{color:var(--green)}
+.def-dag-geel{color:var(--warn)}
+.def-dag-rood{color:var(--red)}
+.def-dag-grijs{color:var(--muted)}
+
+/* ── CLIENT TEKSTVELDEN ── */
+.client-rij{display:flex;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border)}
+.wis-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;}
+.wis-btn:hover{color:var(--red);}
+.client-rij:last-child{border-bottom:none}
+.client-naam{font-size:12px;font-weight:bold;color:var(--acc);padding:7px 10px;min-width:78px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:flex-start;flex-shrink:0}
+.client-kamer{font-size:10px;color:var(--muted);font-weight:normal}
+.client-txt{flex:1;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;resize:none;min-height:50px;width:100%;overflow:hidden}
+.client-txt:focus{outline:none;background:var(--surf2)}
+.client-txt::placeholder{color:var(--dimmer)}
+
+/* ── MEDED ── */
+.meded-txt{background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 12px;resize:none;min-height:80px;width:100%;line-height:1.6;overflow:hidden}
+.meded-txt:focus{outline:none;background:var(--surf2)}
+.meded-txt::placeholder{color:var(--dimmer)}
+
+/* ── FOOTER KNOPPEN ── */
+.footer-rij{display:flex;gap:8px;padding:10px 12px;flex-wrap:wrap}
+.btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;transition:all .15s}
+.btn:active{background:var(--surf2)}
+.btn-red{border-color:var(--red);color:var(--red)}
+.btn-red:active{background:var(--red-dim)}
+.btn-acc{border-color:var(--acc);color:var(--acc)}
+
+/* ── BEHEER MODAL ── */
+#beheer-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;overflow-y:auto;padding:20px 10px}
+#beheer-modal.open{display:block}
+#beheer-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;max-width:600px;margin:0 auto;padding:20px}
+#beheer-box h2{font-size:15px;color:var(--acc);margin-bottom:16px;letter-spacing:.08em}
+.beh-sectie{margin-bottom:20px}
+.beh-sectie h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+.beh-rij{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.beh-label{font-size:12px;min-width:80px;color:var(--text)}
+.beh-input{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 7px;border-radius:var(--r);flex:1;min-width:0}
+.beh-input:focus{outline:1px solid var(--acc)}
+.beh-cb-rij{display:flex;gap:6px;flex-wrap:wrap}
+.beh-dag-cb{display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer}
+.beh-dag-cb input{cursor:pointer}
+.beh-save{background:var(--acc-dim);border:1px solid var(--acc);color:var(--acc);font-family:var(--mono);font-size:12px;padding:6px 14px;border-radius:var(--r);cursor:pointer;margin-top:10px}
+.beh-close{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:12px;padding:6px 14px;border-radius:var(--r);cursor:pointer;margin-top:10px;margin-left:6px}
+
+/* ── INTERACTIE PANEEL ── */
+#ip-trigger{position:fixed;bottom:18px;right:14px;z-index:300;background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--muted);font-family:var(--mono);cursor:pointer;transition:all .2s}
+#ip-trigger:hover{border-color:var(--acc);color:var(--acc)}
+#ip-trigger.actief{background:var(--acc-dim);border-color:var(--acc);color:var(--acc)}
+
+#ip-paneel{display:none;position:fixed;z-index:400;background:var(--surf);border:1px solid var(--acc);border-radius:10px;width:260px;box-shadow:0 4px 24px rgba(0,0,0,.5);user-select:none}
+#ip-paneel.open{display:block}
+#ip-drag{background:var(--surf2);padding:7px 10px;border-radius:10px 10px 0 0;cursor:grab;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+#ip-drag:active{cursor:grabbing}
+#ip-drag-title{font-size:11px;font-weight:bold;color:var(--acc);letter-spacing:.08em}
+#ip-min{font-size:14px;color:var(--muted);cursor:pointer;padding:0 4px;line-height:1}
+#ip-min:hover{color:var(--text)}
+
+#ip-auteur{font-size:10px;color:var(--muted);padding:4px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+#ip-auteur-naam{color:var(--green);font-weight:bold}
+
+#ip-valentie{display:flex;border-bottom:1px solid var(--border)}
+.ip-val-btn{flex:1;padding:7px;text-align:center;font-size:15px;cursor:pointer;transition:background .15s;font-weight:bold}
+.ip-val-btn.pos{color:var(--green)}
+.ip-val-btn.neg{color:var(--red)}
+.ip-val-btn.actief-pos{background:var(--green-dim)}
+.ip-val-btn.actief-neg{background:var(--red-dim)}
+.ip-val-sep{width:1px;background:var(--border)}
+
+#ip-tabs{display:flex;border-bottom:1px solid var(--border)}
+.ip-tab{flex:1;padding:5px;text-align:center;font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--mono)}
+.ip-tab.actief{color:var(--acc);border-bottom:2px solid var(--acc)}
+
+.ip-kamers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);padding:0}
+.ip-kamer{background:var(--surf2);padding:8px 4px;text-align:center;font-size:12px;font-family:var(--mono);cursor:pointer;transition:background .12s;color:var(--text)}
+.ip-kamer:hover{background:var(--surf)}
+.ip-kamer.sel-pos{background:var(--green-dim);color:var(--green)}
+.ip-kamer.sel-neg{background:var(--red-dim);color:var(--red)}
+
+#ip-footer{padding:6px 10px;display:flex;gap:6px;align-items:center;border-top:1px solid var(--border)}
+#ip-insert-btn{flex:1;background:var(--acc-dim);border:1px solid var(--acc);color:var(--acc);font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:var(--r);cursor:pointer}
+#ip-insert-btn:active{background:var(--acc);color:#fff}
+#ip-clear-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:var(--r);cursor:pointer}
+
+/* ── PINCODE MODAL ── */
+#pin-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;align-items:center;justify-content:center}
+#pin-modal.open{display:flex}
+#pin-box{background:var(--surf);border:1px solid var(--acc);border-radius:12px;padding:24px 20px;width:260px;text-align:center}
+#pin-box h3{font-size:14px;color:var(--acc);margin-bottom:4px;letter-spacing:.08em}
+#pin-box p{font-size:11px;color:var(--muted);margin-bottom:16px}
+#pin-naam-inp{width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:7px 10px;border-radius:var(--r);margin-bottom:8px;text-align:center}
+#pin-inp{width:100%;background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:20px;padding:8px 10px;border-radius:var(--r);text-align:center;letter-spacing:.3em}
+#pin-fout{font-size:11px;color:var(--red);margin-top:6px;min-height:16px}
+#pin-ok{width:100%;margin-top:12px;background:var(--acc-dim);border:1px solid var(--acc);color:var(--acc);font-family:var(--mono);font-size:13px;padding:8px;border-radius:var(--r);cursor:pointer}
+#pin-ok:active{background:var(--acc);color:#fff}
+#pin-annul{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;margin-top:8px;font-family:var(--mono)}
+
+@media(max-width:480px){
+  .douche-grid{grid-template-columns:1fr 1fr}
+  .douche-item:nth-child(3n){border-right:1px solid var(--border)}
+  .douche-item:nth-child(2n){border-right:none}
+  .douche-item:nth-last-child(-n+3){border-bottom:1px solid var(--border)}
+  .douche-item:nth-last-child(-n+2){border-bottom:none}
+}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <span id="hdr-title">BG 0.00 · A</span>
+  <input type="date" id="datum-pick">
+  <select id="dienst-sel">
+    <option value="vroeg">◑ Vroeg</option>
+    <option value="laat">● Laat</option>
+  </select>
+  <span id="save-ind">✓ opgeslagen</span>
+  <div id="prog-wrap"><div id="prog-bar"></div></div>
+</div>
+
+<div id="notif-zone"></div>
+
+<main>
+
+  <!-- HUISHOUDELIJKE TAKEN -->
+  <div class="kaart">
+    <div class="kaart-hdr">
+      Huishoudelijke taken
+      <span class="badge" id="badge-hh">0/0</span>
+    </div>
+    <div id="lijst-hh"></div>
+  </div>
+
+  <!-- DOUCHEN -->
+  <div class="kaart">
+    <div class="kaart-hdr">
+      Douchen
+      <span class="badge" id="badge-douche">0/0</span>
+    </div>
+    <div class="douche-grid" id="lijst-douche"></div>
+  </div>
+
+  <!-- DEFECATIE -->
+  <div class="kaart">
+    <div class="kaart-hdr">
+      Defecatie
+      <span style="font-size:10px;color:var(--muted);text-transform:none;font-style:italic">✓ = update defboard</span>
+    </div>
+    <table class="def-tabel">
+      <thead>
+        <tr>
+          <th>Kamer</th>
+          <th>Normaal</th>
+          <th>Veel</th>
+          <th>Weinig</th>
+          <th>Laatste</th>
+        </tr>
+      </thead>
+      <tbody id="def-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- BIJZONDERHEDEN PER CLIËNT -->
+  <div class="kaart">
+    <div class="kaart-hdr">
+      Bijzonderheden per cliënt
+      <span style="font-size:10px;color:var(--muted);text-transform:none;font-style:italic">aanval · afspraak · gedrag · medicatie · VIM</span>
+    </div>
+    <div id="lijst-clienten"></div>
+  </div>
+
+  <!-- NOG TE DOEN -->
+  <div class="kaart">
+    <div class="kaart-hdr">Nog te doen / mededelingen</div>
+    <textarea class="meded-txt" id="meded" placeholder="Vrije tekst voor overdracht…"></textarea>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="kaart">
+    <div class="footer-rij">
+      <button class="btn btn-acc" onclick="openBeheer()">⚙ Beheer</button>
+      <button class="btn btn-red" id="reset-btn" style="display:none" onclick="resetDienst()">↺ Reset dienst</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- BEHEER MODAL -->
+<div id="beheer-modal">
+  <div id="beheer-box">
+    <h2>⚙ Beheer — BG 0.00 A</h2>
+
+    <div class="beh-sectie">
+      <h3>Douchedagen per bewoner</h3>
+      <div id="beh-douche-grid"></div>
+    </div>
+
+    <div class="beh-sectie">
+      <h3>Max. dagen zonder douche (waarschuwing)</h3>
+      <div class="beh-rij">
+        <label class="beh-label">Drempel</label>
+        <input class="beh-input" id="beh-drempel" type="number" min="1" max="14" value="3" style="max-width:60px">
+        <span style="font-size:11px;color:var(--muted)">dagen</span>
+      </div>
+    </div>
+
+    <div class="beh-sectie">
+      <h3>Extra taken toevoegen voor vandaag</h3>
+      <div class="beh-rij">
+        <input class="beh-input" id="beh-extra-taak" placeholder="Taakomschrijving…">
+        <button class="btn btn-acc" onclick="voegExtraTaakToe()">+ Toevoegen</button>
+      </div>
+      <div id="beh-extra-lijst" style="margin-top:6px;font-size:12px;color:var(--muted)"></div>
+    </div>
+
+    <button class="beh-save" onclick="slaanBeheerOp()">✓ Opslaan</button>
+    <button class="beh-close" onclick="sluitBeheer()">Annuleren</button>
+  </div>
+</div>
+
+<!-- INTERACTIE TRIGGER -->
+<button id="ip-trigger" onclick="ipTriggerKlik()">± interactie</button>
+
+<!-- INTERACTIE PANEEL -->
+<div id="ip-paneel">
+  <div id="ip-drag">
+    <span id="ip-drag-title">± INTERACTIE</span>
+    <span id="ip-min" onclick="ipMinimaliseer()">−</span>
+  </div>
+  <div id="ip-auteur">
+    <span>Actief:</span>
+    <span id="ip-auteur-naam">—</span>
+  </div>
+  <div id="ip-valentie">
+    <div class="ip-val-btn pos" id="ip-pos" onclick="ipKiesValentie('pos')">＋</div>
+    <div class="ip-val-sep"></div>
+    <div class="ip-val-btn neg" id="ip-neg" onclick="ipKiesValentie('neg')">－</div>
+  </div>
+  <div id="ip-tabs">
+    <div class="ip-tab actief" id="ip-tab-a" onclick="ipKiesTab('a')">A · 0.07–0.12</div>
+    <div class="ip-tab" id="ip-tab-b" onclick="ipKiesTab('b')">B · 0.27–0.32</div>
+  </div>
+  <div class="ip-kamers" id="ip-kamers-grid"></div>
+  <div id="ip-footer">
+    <button id="ip-insert-btn" onclick="ipInvoegen()">↵ Invoegen</button>
+    <button id="ip-clear-btn" onclick="ipReset()">✕ Wis</button>
+  </div>
+</div>
+
+<!-- PINCODE MODAL -->
+<div id="pin-modal">
+  <div id="pin-box">
+    <h3>INTERACTIE ACTIVEREN</h3>
+    <p>Eenmalig per sessie. Jouw initialen/naam + pincode.</p>
+    <input id="pin-naam-inp" type="text" placeholder="Initialen of naam" autocomplete="off" maxlength="20">
+    <input id="pin-inp" type="password" inputmode="numeric" placeholder="····" maxlength="6" autocomplete="off">
+    <div id="pin-fout"></div>
+    <button id="pin-ok" onclick="pinBevestig()">Activeren</button>
+    <br><button id="pin-annul" onclick="pinSluit()">Annuleren</button>
+  </div>
+</div>
+
+
+// ═══════════════════════════════════════════════════════════
+// CONFIGURATIE
+// ═══════════════════════════════════════════════════════════
+
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyjnk84P0TdzN8rVjd0MFuXWbxmyQI_SMcP00YPSKOSSv692rO3-_XtKQRBKMLyOA1H/exec';
+
+// Kamers A-kant BG
+const KAMERS = [
+  { nr:'0.07' },
+  { nr:'0.08' },
+  { nr:'0.09' },
+  { nr:'0.10' },
+  { nr:'0.11' },
+  { nr:'0.12' },
+];
+
+const DAGEN = ['zo','ma','di','wo','do','vr','za']; // 0=zo conform JS Date
+
+// Standaard douchedagen per kamernummer (0=zo,1=ma,...,6=za)
+const DEF_DOUCHE = {
+  '0.07': { dagen:[4],         flexPrevDay:false }, // do
+  '0.08': { dagen:[1,3,4,6,0], flexPrevDay:false }, // ma,wo,do,za,zo
+  '0.09': { dagen:[2,4,6],     flexPrevDay:true  }, // di,do,za(of zo) - flexdag
+  '0.10': { dagen:[2,5,0],     flexPrevDay:false }, // di laat,vr laat,zo laat
+  '0.11': { dagen:[1,3,4,5,6,0], flexPrevDay:false }, // ma laat,wo laat,do,vr,za,zo
+  '0.12': { dagen:[1,2,3,6,0],   flexPrevDay:false }, // ma,di,wo,za,zo
+};
+
+// Takendatabase per dag (0=zo..6=za) en dienst
+const TAKEN_DB = {
+  // GEDEELD ELKE DIENST
+  gedeeld: {
+    vroeg: [
+      { id:'haccp',  label:'HACCP app invullen' },
+      { id:'kamers', label:'Kamers bijvullen (handdoeken, washandjes etc.)' },
+      { id:'waszak', label:'Waszakken/vuilniszak en incontinentiezak wegbrengen en opnieuw ophangen' },
+    ],
+    laat: [
+      { id:'haccp',   label:'HACCP app invullen' },
+      { id:'kamers',  label:'Kamers bijvullen (handdoeken, washandjes etc.)' },
+      { id:'waszak',  label:'Waszakken/vuilniszak wegbrengen' },
+      { id:'ramen',   label:'Alle ramen dicht doen' },
+      { id:'inbox',   label:'Inbox van de telefoons legen' },
+      { id:'tablet',  label:'Tablet + telefoon in de oplader' },
+      { id:'med_haal',label:'Medicatie halen uit de leveranciersruimte' },
+      { id:'med_tas', label:'Medicatie tasjes en voedingspakken uit de rugzakken halen + broodtrommels' },
+    ],
+  },
+  // PER DAG — extra taken bovenop gedeeld
+  1: { // Maandag
+    vroeg:[
+      { id:'post',     label:'Post halen' },
+      { id:'linnen',   label:'Linnengoed + kleding opruimen' },
+      { id:'k012_k',   label:'[0.12] kamer schoonmaken' },
+      { id:'k010_bed', label:'[0.10] bed verschonen en kamer schoonmaken' },
+      { id:'epicares', label:'Epicares testen' },
+      { id:'etenskar', label:'Etenskar opruimen' },
+    ],
+    laat:[],
+  },
+  2: { // Dinsdag
+    vroeg:[
+      { id:'k009_bed',     label:'[0.09] bed verschonen en kamer schoonmaken' },
+      { id:'post',         label:'Post halen' },
+      { id:'keuken_haccp', label:'Keuken schoonmaken (zie HACCP-lijst keuken)' },
+    ],
+    laat:[
+      { id:'warm_temp', label:'Warm eten temperaturen controleren' },
+    ],
+  },
+  3: { // Woensdag
+    vroeg:[
+      { id:'regen',     label:'Regenereeroven schoonmaken' },
+      { id:'etenskar',  label:'Etenskar opruimen' },
+      { id:'linnen_kl', label:'Linnengoed + kledingkar opruimen' },
+      { id:'k007_bed', label:'[0.07] bed verschonen en kamer schoonmaken' },
+      { id:'badkamers', label:'Badkamers etc bijvullen' },
+      { id:'vegen',     label:'Zo nodig afdeling vegen en keuken schoonmaken' },
+    ],
+    laat:[
+      { id:'vuilnisbak', label:'Vuilnisbak schoonmaken' },
+      { id:'filter',     label:'Filter in de droger leeg halen' },
+    ],
+  },
+  4: { // Donderdag
+    vroeg:[
+      { id:'doekje',   label:'Doekje door de huiskamer' },
+      { id:'post',     label:'Post halen' },
+      { id:'vegen',    label:'Zo nodig de afdeling vegen en keuken schoonmaken' },
+      { id:'k008_bed', label:'[0.08] bed verschonen en kamer schoonmaken' },
+    ],
+    laat:[
+      { id:'atc',    label:'ATC zakjes controleren' },
+    ],
+  },
+  5: { // Vrijdag
+    vroeg:[
+      { id:'kleding', label:'Kleding + linnengoed opruimen' },
+      { id:'post',    label:'Post halen' },
+      { id:'vegen',   label:'Zo nodig de afdeling vegen en keuken schoonmaken' },
+      { id:'k011_bed', label:'[0.11] bed verschonen en kamer schoonmaken' },
+    ],
+    laat:[
+      { id:'steunkousen', label:'Steunkousen wassen' },
+    ],
+  },
+  6: { // Zaterdag
+    vroeg:[
+      { id:'k012_bed', label:'[0.12] bed verschonen' },
+    ],
+    laat:[],
+  },
+  0: { // Zondag
+    vroeg:[
+      { id:'badkamers',  label:'Badkamers bijvullen (handdoeken, washandjes etc.)' },
+      { id:'scheer',     label:'Scheerapparaten schoonmaken' },
+    ],
+    laat:[
+      { id:'rolstoel', label:'Rolstoelen + rollators schoonmaken' },
+    ],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE & OPSLAG
+// ═══════════════════════════════════════════════════════════
+
+let state = {};
+let sleutel = '';
+let cfg = {};
+let defLaatste = {}; // kamernr → {datum, hoeveelheid}
+let autoTimer = null;
+let saveTimer = null;
+
+function vandaagISO(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function buildSleutel(datum,dienst){ return `rap-g5b-bg00a_${datum}_${dienst}`; }
+function cfgSleutel(){ return 'rap-g5b-bg00a_cfg'; }
+function doucheSleutel(){ return 'rap-g5b-bg00a_douche'; }
+
+function laadCfg(){
+  const raw=localStorage.getItem(cfgSleutel());
+  if(raw){ try{ cfg=JSON.parse(raw); return; }catch(e){} }
+  // Defaults
+  cfg = {
+    doucheConfig: JSON.parse(JSON.stringify(DEF_DOUCHE)),
+    drempel: 3,
+  };
+}
+
+function slaanCfgOp(){
+  localStorage.setItem(cfgSleutel(), JSON.stringify(cfg));
+}
+
+function laadDoucheLaatste(){
+  const raw=localStorage.getItem(doucheSleutel());
+  if(raw){ try{ defLaatste=JSON.parse(raw); return; }catch(e){} }
+  defLaatste={};
+}
+
+function slaanDoucheLaatste(){
+  localStorage.setItem(doucheSleutel(), JSON.stringify(defLaatste));
+}
+
+function laadState(sl){
+  const raw=localStorage.getItem(sl);
+  if(raw){ try{ return JSON.parse(raw); }catch(e){} }
+  return { hh:{}, douche:{}, def:{}, clienten:{}, meded:'', extraTaken:[] };
+}
+
+function slaanOpState(){
+  localStorage.setItem(sleutel, JSON.stringify(state));
+  const ind=document.getElementById('save-ind');
+  ind.classList.add('show');
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>ind.classList.remove('show'),1500);
+}
+
+function autoSave(){
+  clearTimeout(autoTimer);
+  autoTimer=setTimeout(slaanOpState,400);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAKEN OPHALEN
+// ═══════════════════════════════════════════════════════════
+
+function getTaken(dagNr, dienst){
+  const gedeeld = (TAKEN_DB.gedeeld[dienst]||[]).map(t=>({...t}));
+  const dagExtra = ((TAKEN_DB[dagNr]||{})[dienst]||[]).map(t=>({...t}));
+  const stateExtra = (state.extraTaken||[]).map((label,i)=>({id:'extra_'+i,label}));
+  return [...gedeeld, ...dagExtra, ...stateExtra];
+}
+
+function getDouchePlan(dagNr){
+  // Welke kamers staan ingepland voor douchen op deze dag?
+  const plan=[];
+  const dc = cfg.doucheConfig || DEF_DOUCHE;
+  KAMERS.forEach(k=>{
+    const conf = dc[k.nr] || DEF_DOUCHE[k.nr] || {dagen:[],flexPrevDay:false};
+    const gepland = conf.dagen.includes(dagNr);
+    // flexPrevDay: als gisteren al gedoucht, dan vandaag overslaan
+    let skipFlex=false;
+    if(conf.flexPrevDay && gepland){
+      const gisteren=new Date();
+      gisteren.setDate(gisteren.getDate()-1);
+      const gistDatum=gisteren.getFullYear()+'-'+String(gisteren.getMonth()+1).padStart(2,'0')+'-'+String(gisteren.getDate()).padStart(2,'0');
+      if(defLaatste[k.nr] && defLaatste[k.nr].douche===gistDatum) skipFlex=true;
+    }
+    plan.push({...k, gepland: gepland && !skipFlex, skipFlex});
+  });
+  return plan;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEFECATIE HELPERS
+// ═══════════════════════════════════════════════════════════
+
+function dagVerschilDef(kamerNr, vandaag){
+  const info = defLaatste[kamerNr];
+  if(!info || !info.def) return null;
+  const ms = new Date(vandaag) - new Date(info.def);
+  return Math.floor(ms/(1000*60*60*24));
+}
+
+function defDagKlasse(dagen){
+  if(dagen===null) return 'def-dag-grijs';
+  if(dagen===0) return 'def-dag-groen';
+  if(dagen<=1) return 'def-dag-geel';
+  return 'def-dag-rood';
+}
+
+function defDagTekst(dagen){
+  if(dagen===null) return '?';
+  if(dagen===0) return 'vandaag';
+  if(dagen===1) return 'gisteren';
+  return dagen+'d geleden';
+}
+
+// ═══════════════════════════════════════════════════════════
+// GAS PUSH — DEFECATIE
+// ═══════════════════════════════════════════════════════════
+
+function pushDefGAS(kamerNr, hoeveelheid){
+  // Stuur naar GAS zodat defboard bijwerkt
+  // Gebruiken pushDefecatie action (gelijk aan wat def-app doet)
+  const nu = new Date();
+  const ts = nu.toISOString();
+  const datum = nu.getFullYear()+'-'+String(nu.getMonth()+1).padStart(2,'0')+'-'+String(nu.getDate()).padStart(2,'0');
+
+  const body = {
+    action: 'pushDefecatie',
+    registratie: {
+      Kamer: kamerNr,
+      Hoeveelheid: hoeveelheid,
+      Timestamp: ts,
+      DagDatum: datum,
+    }
+  };
+
+  fetch(GAS_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),
+    mode:'no-cors'
+  }).catch(()=>{});
+  // no-cors: we kunnen het resultaat niet lezen, maar de push gaat door
+
+  // Update lokale cache
+  if(!defLaatste[kamerNr]) defLaatste[kamerNr]={};
+  if(hoeveelheid === 'Normaal' || hoeveelheid === 'Veel'){
+    defLaatste[kamerNr].def = datum;
+    defLaatste[kamerNr].defHoeveelheid = hoeveelheid;
+  }
+  slaanDoucheLaatste();
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTIFICATIES
+// ═══════════════════════════════════════════════════════════
+
+function renderNotificaties(datum, dagNr){
+  const zone = document.getElementById('notif-zone');
+  zone.innerHTML='';
+  const drempel = cfg.drempel||3;
+  const dc = cfg.doucheConfig||DEF_DOUCHE;
+
+  KAMERS.forEach(k=>{
+    const conf = dc[k.nr]||DEF_DOUCHE[k.nr]||{dagen:[],flexPrevDay:false};
+    if(!conf.dagen.length) return;
+
+    // Laatste douchedatum
+    const info = defLaatste[k.nr];
+    const lastDouche = info ? info.douche : null;
+
+    if(!lastDouche){
+      // Nooit geregistreerd
+      if(conf.dagen.includes(dagNr)){
+        toonNotif(zone,'warn',`⚠ ${k.nr} — geen douchehistorie bekend. Ingepland vandaag.`);
+      }
+      return;
+    }
+
+    const msDiff = new Date(datum) - new Date(lastDouche);
+    const dagen = Math.floor(msDiff/(1000*60*60*24));
+
+    if(dagen > drempel){
+      toonNotif(zone,'warn',`⚠ ${k.nr} — laatste douche: ${lastDouche} (${dagen} dagen geleden)`);
+    }
+  });
+}
+
+function toonNotif(zone, type, tekst){
+  const div=document.createElement('div');
+  div.className=`notif notif-${type}`;
+  div.innerHTML=`<span class="notif-icon">${type==='warn'?'⚠':'✓'}</span><span>${tekst}</span>`;
+  zone.appendChild(div);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER FUNCTIES
+// ═══════════════════════════════════════════════════════════
+
+function renderHH(dagNr, dienst){
+  const taken = getTaken(dagNr, dienst);
+  const c=document.getElementById('lijst-hh');
+  c.innerHTML='';
+  taken.forEach(t=>{
+    const checked=!!state.hh[t.id];
+    const div=document.createElement('div');
+    div.className='taak-item'+(checked?' gedaan':'');
+    div.innerHTML=`<input type="checkbox" id="hh_${t.id}" ${checked?'checked':''}><label class="taak-label" for="hh_${t.id}">${t.label}</label>`;
+    div.querySelector('input').addEventListener('change',e=>{
+      state.hh[t.id]=e.target.checked;
+      div.classList.toggle('gedaan',e.target.checked);
+      updateBadges(dagNr,dienst);
+      slaanOpState();
+    });
+    c.appendChild(div);
+  });
+  updateBadges(dagNr,dienst);
+}
+
+function renderDouche(datum, dagNr){
+  const plan = getDouchePlan(dagNr);
+  const c=document.getElementById('lijst-douche');
+  c.innerHTML='';
+
+  // Toon alle 6 kamers; gepland = blauw, niet gepland = grijs
+  plan.forEach(k=>{
+    const checked=!!state.douche[k.nr];
+    const div=document.createElement('div');
+    div.className='douche-item'+(checked?' gedaan':'');
+
+    // Laatste doucheinfo
+    const info=defLaatste[k.nr];
+    const lastDouche=info?info.douche:null;
+    let lastTekst='', lastKlasse='def-dag-grijs';
+    if(lastDouche){
+      const ms=new Date(datum)-new Date(lastDouche);
+      const dd=Math.floor(ms/(1000*60*60*24));
+      lastTekst = dd===0?'vandaag':dd===1?'gisteren':dd+'d';
+      lastKlasse = dd===0?'last-ok':dd<=2?'last-warn':'last-alert';
+    }
+
+    const geplandStyle = k.gepland ? '' : 'opacity:.45';
+    div.style.cssText=geplandStyle;
+
+    div.innerHTML=`
+      <input type="checkbox" id="d_${k.nr}" ${checked?'checked':''}>
+      <div>
+        <label class="douche-label" for="d_${k.nr}">${k.nr}${k.gepland?' 📅':''}</label>
+      </div>
+      ${lastDouche?`<span class="douche-last ${lastKlasse}">${lastTekst}</span>`:''}
+    `;
+
+    div.querySelector('input').addEventListener('change',e=>{
+      state.douche[k.nr]=e.target.checked;
+      div.classList.toggle('gedaan',e.target.checked);
+
+      if(e.target.checked){
+        // Registreer douchedatum
+        if(!defLaatste[k.nr]) defLaatste[k.nr]={};
+        defLaatste[k.nr].douche=datum;
+        slaanDoucheLaatste();
+        // Re-render om lastTekst bij te werken
+        renderDouche(datum,dagNr);
+        renderNotificaties(datum,dagNr);
+      }
+
+      updateBadges(dagNr,dienst());
+      slaanOpState();
+    });
+    c.appendChild(div);
+  });
+  updateBadges(dagNr,dienst());
+}
+
+function dienst(){ return document.getElementById('dienst-sel').value; }
+
+function renderDef(datum){
+  const tbody=document.getElementById('def-tbody');
+  tbody.innerHTML='';
+  KAMERS.forEach(k=>{
+    const st=state.def[k.nr]||{};
+    const dagen=dagVerschilDef(k.nr,datum);
+    const klasse=defDagKlasse(dagen);
+    const tekst=defDagTekst(dagen);
+
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="def-kamer">${k.nr}</span></td>
+      <td style="text-align:center"><input class="def-cb normaal" type="checkbox" data-kamer="${k.nr}" data-hw="Normaal" ${st.hw==='Normaal'?'checked':''}></td>
+      <td style="text-align:center"><input class="def-cb veel" type="checkbox" data-kamer="${k.nr}" data-hw="Veel" ${st.hw==='Veel'?'checked':''}></td>
+      <td style="text-align:center"><input class="def-cb weinig" type="checkbox" data-kamer="${k.nr}" data-hw="Weinig" ${st.hw==='Weinig'?'checked':''}></td>
+      <td><span class="${klasse}" style="font-size:11px">${tekst}</span></td>
+    `;
+
+    // Mutual exclusion checkboxes
+    tr.querySelectorAll('.def-cb').forEach(cb=>{
+      cb.addEventListener('change',e=>{
+        const kamer=e.target.dataset.kamer;
+        const hw=e.target.dataset.hw;
+        if(e.target.checked){
+          // Uncheck siblings
+          tr.querySelectorAll('.def-cb').forEach(other=>{ if(other!==e.target) other.checked=false; });
+          state.def[kamer]={hw};
+          pushDefGAS(kamer,hw);
+        } else {
+          state.def[kamer]={};
+        }
+        slaanOpState();
+        renderDef(datum); // herrender voor 'Laatste' kolom update
+      });
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderClienten(){
+  const c=document.getElementById('lijst-clienten');
+  c.innerHTML='';
+  KAMERS.forEach(k=>{
+    const div=document.createElement('div');
+    div.className='client-rij';
+    div.innerHTML=`
+      <div class="client-naam">${k.nr}</div>
+      <textarea class="client-txt" id="cl_${k.nr}" data-kamer="${k.nr}" placeholder="—" rows="2">${state.clienten[k.nr]||''}</textarea>
+      <button class="wis-btn" data-kamer="${k.nr}" style="display:none" title="Wis tekst" onclick="wisEigenVeld('${k.nr}')">🗑</button>
+    `;
+    div.querySelector('textarea').addEventListener('input',e=>{
+      state.clienten[k.nr]=e.target.value;
+      autoSave();
+    });
+    c.appendChild(div);
+  });
+}
+
+function wisEigenVeld(kamer){
+  if(!ipAuteur) return;
+  const ta = document.getElementById('cl_' + kamer);
+  if(!ta) return;
+  ta.value = '';
+  state.clienten[kamer] = '';
+  autoExpand(ta);
+  autoSave();
+}
+
+function renderMeded(){
+  const el=document.getElementById('meded');
+  el.value=state.meded||'';
+  el.oninput=()=>{ state.meded=el.value; autoSave(); };
+}
+
+function updateBadges(dagNr, ds){
+  const taken=getTaken(dagNr,ds);
+  const hhGed=taken.filter(t=>state.hh[t.id]).length;
+  const hhTot=taken.length;
+  const bhh=document.getElementById('badge-hh');
+  bhh.textContent=`${hhGed}/${hhTot}`;
+  bhh.classList.toggle('vol',hhGed===hhTot&&hhTot>0);
+
+  const dGed=KAMERS.filter(k=>state.douche[k.nr]).length;
+  const plan=getDouchePlan(dagNr);
+  const dTot=plan.filter(k=>k.gepland).length;
+  const bd=document.getElementById('badge-douche');
+  bd.textContent=`${dGed}/${dTot} (plan)`;
+  bd.classList.toggle('vol',dGed>=dTot&&dTot>0);
+
+  const totaal=hhTot+dTot;
+  const gedaan=hhGed+dGed;
+  document.getElementById('prog-bar').style.width=(totaal?Math.round(gedaan/totaal*100):0)+'%';
+}
+
+function renderAll(datum, dagNr, ds){
+  renderHH(dagNr,ds);
+  renderDouche(datum,dagNr);
+  renderDef(datum);
+  renderClienten();
+  renderMeded();
+  renderNotificaties(datum,dagNr);
+  setTimeout(expandAlleTextareas,50);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DIENST WISSELEN
+// ═══════════════════════════════════════════════════════════
+
+function wissel(){
+  const datum=document.getElementById('datum-pick').value;
+  const ds=document.getElementById('dienst-sel').value;
+  const dagNr=new Date(datum+'T12:00:00').getDay();
+  sleutel=buildSleutel(datum,ds);
+  state=laadState(sleutel);
+  renderAll(datum,dagNr,ds);
+}
+
+function resetDienst(){
+  if(!confirm('Alle data van deze dienst wissen?')) return;
+  state={hh:{},douche:{},def:{},clienten:{},meded:'',extraTaken:[]};
+  slaanOpState();
+  wissel();
+}
+
+// ═══════════════════════════════════════════════════════════
+// BEHEERDER PINCODE
+// ═══════════════════════════════════════════════════════════
+
+function laadBeheerPin(){ return localStorage.getItem('rap-g5b-beheer-pin')||null; }
+function slaanBeheerPinOp(pin){ localStorage.setItem('rap-g5b-beheer-pin', pin); }
+
+function resetDienstBeheerder(){
+  const opgeslagen = laadBeheerPin();
+  const label = opgeslagen ? 'Beheerder-pincode:' : 'Kies een beheerder-pincode (eerste gebruik):';
+  const invoer = prompt(label);
+  if(invoer === null) return;
+  if(!opgeslagen){
+    if(invoer.length < 4){ alert('Pincode minimaal 4 tekens.'); return; }
+    slaanBeheerPinOp(invoer);
+    alert('Beheerder-pincode ingesteld.');
+    return;
+  }
+  if(invoer !== opgeslagen){ alert('Onjuiste pincode.'); return; }
+  document.getElementById('reset-btn').style.display = '';
+  openBeheerModal();
+}
+
+function openBeheer(){
+  const opgeslagen = laadBeheerPin();
+  const label = opgeslagen ? 'Beheerder-pincode:' : 'Kies een beheerder-pincode (eerste gebruik):';
+  const invoer = prompt(label);
+  if(invoer === null) return;
+  if(!opgeslagen){
+    if(invoer.length < 4){ alert('Pincode minimaal 4 tekens.'); return; }
+    slaanBeheerPinOp(invoer);
+    alert('Pincode ingesteld. Heropen Beheer om in te loggen.');
+    return;
+  }
+  if(invoer !== opgeslagen){ alert('Onjuiste pincode.'); return; }
+  openBeheerModal();
+}
+
+// ═══════════════════════════════════════════════════════════
+// BEHEER MODAL
+// ═══════════════════════════════════════════════════════════
+
+function openBeheerModal(){
+  const dc=cfg.doucheConfig||DEF_DOUCHE;
+  const grid=document.getElementById('beh-douche-grid');
+  grid.innerHTML='';
+  const dagLabels=['Zo','Ma','Di','Wo','Do','Vr','Za'];
+
+  KAMERS.forEach(k=>{
+    const conf=dc[k.nr]||DEF_DOUCHE[k.nr]||{dagen:[],flexPrevDay:false};
+    const rij=document.createElement('div');
+    rij.style.cssText='margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)';
+    rij.innerHTML=`<div style="font-size:12px;color:var(--acc);margin-bottom:5px">${k.nr}</div>
+      <div class="beh-cb-rij" id="beh_dc_${k.nr.replace('.','_')}">
+        ${dagLabels.map((l,i)=>`<label class="beh-dag-cb"><input type="checkbox" data-kamer="${k.nr}" data-dag="${i}" ${conf.dagen.includes(i)?'checked':''}> ${l}</label>`).join('')}
+      </div>
+      <label class="beh-dag-cb" style="margin-top:5px;font-size:11px;color:var(--muted)">
+        <input type="checkbox" id="beh_flex_${k.nr.replace('.','_')}" ${conf.flexPrevDay?'checked':''}> Flexdag (overslaan als gisteren gedoucht)
+      </label>`;
+    grid.appendChild(rij);
+  });
+
+  document.getElementById('beh-drempel').value=cfg.drempel||3;
+  renderExtraTakenBeheer();
+  document.getElementById('beheer-modal').classList.add('open');
+}
+
+function sluitBeheer(){
+  document.getElementById('beheer-modal').classList.remove('open');
+}
+
+function slaanBeheerOp(){
+  const dc={};
+  KAMERS.forEach(k=>{
+    const id=k.nr.replace('.','_');
+    const dagCbs=document.querySelectorAll(`[data-kamer="${k.nr}"]`);
+    const dagen=[];
+    dagCbs.forEach(cb=>{ if(cb.checked) dagen.push(parseInt(cb.dataset.dag)); });
+    const flex=document.getElementById(`beh_flex_${id}`).checked;
+    dc[k.nr]={dagen,flexPrevDay:flex};
+  });
+  cfg.doucheConfig=dc;
+  cfg.drempel=parseInt(document.getElementById('beh-drempel').value)||3;
+  slaanCfgOp();
+  sluitBeheer();
+  wissel();
+}
+
+function voegExtraTaakToe(){
+  const inp=document.getElementById('beh-extra-taak');
+  const val=inp.value.trim();
+  if(!val) return;
+  if(!state.extraTaken) state.extraTaken=[];
+  state.extraTaken.push(val);
+  inp.value='';
+  slaanOpState();
+  renderExtraTakenBeheer();
+  renderHH(new Date(document.getElementById('datum-pick').value+'T12:00:00').getDay(), document.getElementById('dienst-sel').value);
+}
+
+function renderExtraTakenBeheer(){
+  const c=document.getElementById('beh-extra-lijst');
+  if(!state.extraTaken||!state.extraTaken.length){ c.textContent='Geen extra taken.'; return; }
+  c.innerHTML=state.extraTaken.map((t,i)=>
+    `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+      <span>${t}</span>
+      <button class="btn btn-red" style="font-size:10px;padding:2px 6px" onclick="verwijderExtraTaak(${i})">✕</button>
+    </div>`
+  ).join('');
+}
+
+function verwijderExtraTaak(i){
+  state.extraTaken.splice(i,1);
+  slaanOpState();
+  renderExtraTakenBeheer();
+  renderHH(new Date(document.getElementById('datum-pick').value+'T12:00:00').getDay(), document.getElementById('dienst-sel').value);
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// AUTO-EXPAND TEXTAREAS
+// ═══════════════════════════════════════════════════════════
+
+function autoExpand(el){
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+
+document.addEventListener('input',e=>{
+  if(e.target.matches('.client-txt,.meded-txt')) autoExpand(e.target);
+});
+
+function expandAlleTextareas(){
+  document.querySelectorAll('.client-txt,.meded-txt').forEach(autoExpand);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PINCODE SYSTEEM
+// ═══════════════════════════════════════════════════════════
+
+// Pincodes opgeslagen in localStorage onder 'rap-g5b-pincodes'
+// Formaat: { "AV": "1234", "RJ": "5678" }
+// Eerste gebruik: elke combinatie van naam+pin wordt geaccepteerd en opgeslagen.
+// Daarna: naam moet overeenkomen met opgeslagen pin.
+
+let ipAuteur = null; // { naam, pin } voor huidige sessie
+
+function laadPincodes(){
+  try{ return JSON.parse(localStorage.getItem('rap-g5b-pincodes')||'{}'); }catch(e){ return {}; }
+}
+function slaanPincodesOp(pins){ localStorage.setItem('rap-g5b-pincodes',JSON.stringify(pins)); }
+
+function ipTriggerKlik(){
+  if(ipAuteur){
+    // Al ingelogd — toggle paneel
+    ipPaneelToggle();
+  } else {
+    // Pincode vragen
+    pinOpen();
+  }
+}
+
+function pinOpen(){
+  document.getElementById('pin-modal').classList.add('open');
+  document.getElementById('pin-naam-inp').value='';
+  document.getElementById('pin-inp').value='';
+  document.getElementById('pin-fout').textContent='';
+  setTimeout(()=>document.getElementById('pin-naam-inp').focus(),100);
+}
+
+function pinSluit(){
+  document.getElementById('pin-modal').classList.remove('open');
+}
+
+function pinBevestig(){
+  const naam = document.getElementById('pin-naam-inp').value.trim();
+  const pin  = document.getElementById('pin-inp').value.trim();
+  if(!naam){ document.getElementById('pin-fout').textContent='Vul je naam/initialen in.'; return; }
+  if(pin.length < 4){ document.getElementById('pin-fout').textContent='Pincode minimaal 4 cijfers.'; return; }
+
+  const pins = laadPincodes();
+  const sleutelNaam = naam.toLowerCase();
+
+  if(pins[sleutelNaam]){
+    if(pins[sleutelNaam] !== pin){
+      document.getElementById('pin-fout').textContent='Pincode onjuist.';
+      document.getElementById('pin-inp').value='';
+      return;
+    }
+  } else {
+    // Nieuw — opslaan
+    pins[sleutelNaam] = pin;
+    slaanPincodesOp(pins);
+  }
+
+  ipAuteur = { naam, pin };
+  pinSluit();
+  ipActiveer();
+}
+
+// Enter in pin-veld — wordt geregistreerd na DOM-load (zie startup hieronder)
+
+
+// ═══════════════════════════════════════════════════════════
+// INTERACTIE PANEEL
+// ═══════════════════════════════════════════════════════════
+
+const IP_KAMERS = {
+  a: ['0.07','0.08','0.09','0.10','0.11','0.12'],
+  b: ['0.27','0.28','0.29','0.30','0.31','0.32'],
+};
+
+let ipValentie   = null;   // 'pos' | 'neg'
+let ipTab        = 'a';
+let ipSelectie   = [];     // [{nr, valentie}]
+let ipDoelVeld   = null;   // textarea waarop ingevoegd wordt
+let ipPaneelPos  = {x:null,y:null};
+
+function ipActiveer(){
+  document.getElementById('ip-auteur-naam').textContent = ipAuteur.naam;
+  document.getElementById('ip-trigger').classList.add('actief');
+  document.getElementById('ip-trigger').textContent = '± ' + ipAuteur.naam;
+  ipPaneelOpen();
+  document.querySelectorAll('.wis-btn').forEach(b => b.style.display = '');
+  document.body.classList.add('ingelogd');
+}
+
+function ipPaneelToggle(){
+  const p=document.getElementById('ip-paneel');
+  if(p.classList.contains('open')) ipMinimaliseer();
+  else ipPaneelOpen();
+}
+
+function ipPaneelOpen(){
+  const p=document.getElementById('ip-paneel');
+  p.classList.add('open');
+  // Startpositie: boven de bijzonderheden-kaart, of eerder bepaalde positie
+  if(ipPaneelPos.x===null){
+    const w=window.innerWidth, h=window.innerHeight;
+    p.style.left=Math.max(8,w-280)+'px';
+    p.style.top=Math.max(8,h-420)+'px';
+  } else {
+    p.style.left=ipPaneelPos.x+'px';
+    p.style.top=ipPaneelPos.y+'px';
+  }
+  ipRenderKamers();
+}
+
+function ipMinimaliseer(){
+  document.getElementById('ip-paneel').classList.remove('open');
+}
+
+function ipKiesValentie(v){
+  ipValentie=v;
+  document.getElementById('ip-pos').classList.toggle('actief-pos',v==='pos');
+  document.getElementById('ip-neg').classList.toggle('actief-neg',v==='neg');
+  ipRenderKamers();
+}
+
+function ipKiesTab(t){
+  ipTab=t;
+  document.getElementById('ip-tab-a').classList.toggle('actief',t==='a');
+  document.getElementById('ip-tab-b').classList.toggle('actief',t==='b');
+  ipRenderKamers();
+}
+
+function ipRenderKamers(){
+  const grid=document.getElementById('ip-kamers-grid');
+  grid.innerHTML='';
+  IP_KAMERS[ipTab].forEach(nr=>{
+    const div=document.createElement('div');
+    div.className='ip-kamer';
+    const bestaand=ipSelectie.find(s=>s.nr===nr);
+    if(bestaand){
+      div.classList.add(bestaand.valentie==='pos'?'sel-pos':'sel-neg');
+    }
+    div.textContent=nr;
+    div.addEventListener('click',()=>ipToggleKamer(nr));
+    grid.appendChild(div);
+  });
+}
+
+function ipToggleKamer(nr){
+  if(!ipValentie) {
+    // Knipperen om valentie-keuze te suggereren
+    const pos=document.getElementById('ip-pos');
+    const neg=document.getElementById('ip-neg');
+    pos.style.outline='2px solid var(--warn)';
+    neg.style.outline='2px solid var(--warn)';
+    setTimeout(()=>{ pos.style.outline=''; neg.style.outline=''; },600);
+    return;
+  }
+  const idx=ipSelectie.findIndex(s=>s.nr===nr);
+  if(idx>=0){
+    // Al geselecteerd: toggle uit of wissel valentie
+    if(ipSelectie[idx].valentie===ipValentie){
+      ipSelectie.splice(idx,1); // zelfde valentie = deselecteer
+    } else {
+      ipSelectie[idx].valentie=ipValentie; // andere valentie = wissel
+    }
+  } else {
+    ipSelectie.push({nr,valentie:ipValentie});
+  }
+  ipRenderKamers();
+}
+
+function ipInvoegen(){
+  if(!ipSelectie.length) return;
+
+  // Doelveld = meest recent gefocuste .client-txt of #meded
+  const veld = ipDoelVeld || document.getElementById('meded');
+  if(!veld) return;
+
+  // Bouw de code-string: +0.11 -0.09 etc.
+  const codes = ipSelectie.map(s=>(s.valentie==='pos'?'+':'-')+s.nr).join(' ');
+
+  // Invoegen op cursorpositie
+  const start=veld.selectionStart;
+  const end=veld.selectionEnd;
+  const huidig=veld.value;
+  const prefix = (start>0 && huidig[start-1]!==' ' && huidig[start-1]!=='\n') ? ' ' : '';
+  const suffix = (end<huidig.length && huidig[end]!==' ') ? ' ' : '';
+  veld.value = huidig.slice(0,start) + prefix + codes + suffix + huidig.slice(end);
+  const nieuwPos = start + prefix.length + codes.length + suffix.length;
+  veld.selectionStart = veld.selectionEnd = nieuwPos;
+  veld.focus();
+  autoExpand(veld);
+
+  // State bijwerken
+  const kamerNr = veld.dataset.kamer;
+  if(kamerNr){
+    state.clienten[kamerNr]=veld.value;
+  } else {
+    state.meded=veld.value;
+  }
+  autoSave();
+
+  // Push interactie naar GAS
+  const datum=document.getElementById('datum-pick').value;
+  const ds=document.getElementById('dienst-sel').value;
+  const subjectKamer=kamerNr||'meded';
+  const contextSnippet=veld.value.slice(Math.max(0,nieuwPos-60),nieuwPos+60).replace(/\n/g,' ');
+
+  ipSelectie.forEach(s=>{
+    pushInteractieGAS({
+      datum, dienst:ds,
+      auteur: ipAuteur.naam,
+      subject: subjectKamer,
+      object: s.nr,
+      valentie: s.valentie==='pos'?'+':'-',
+      context: contextSnippet,
+    });
+  });
+
+  ipReset();
+}
+
+function ipReset(){
+  ipValentie=null;
+  ipSelectie=[];
+  document.getElementById('ip-pos').classList.remove('actief-pos');
+  document.getElementById('ip-neg').classList.remove('actief-neg');
+  ipRenderKamers();
+}
+
+// Bijhouden welk veld actief is
+document.addEventListener('focusin',e=>{
+  if(e.target.matches('.client-txt,#meded')) ipDoelVeld=e.target;
+});
+
+// ── DRAG ────────────────────────────────────────────────────
+(function(){
+  const paneel=()=>document.getElementById('ip-paneel');
+  let dragging=false,ox=0,oy=0;
+
+  document.addEventListener('mousedown',e=>{
+    if(!e.target.closest('#ip-drag')) return;
+    dragging=true;
+    const p=paneel();
+    const rect=p.getBoundingClientRect();
+    ox=e.clientX-rect.left; oy=e.clientY-rect.top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const x=e.clientX-ox, y=e.clientY-oy;
+    const p=paneel();
+    p.style.left=Math.max(0,Math.min(window.innerWidth-p.offsetWidth,x))+'px';
+    p.style.top=Math.max(0,Math.min(window.innerHeight-p.offsetHeight,y))+'px';
+  });
+  document.addEventListener('mouseup',e=>{
+    if(!dragging) return;
+    dragging=false;
+    const p=paneel();
+    ipPaneelPos={x:parseInt(p.style.left),y:parseInt(p.style.top)};
+  });
+
+  // Touch drag
+  document.addEventListener('touchstart',e=>{
+    if(!e.target.closest('#ip-drag')) return;
+    dragging=true;
+    const p=paneel();
+    const rect=p.getBoundingClientRect();
+    ox=e.touches[0].clientX-rect.left; oy=e.touches[0].clientY-rect.top;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!dragging) return;
+    const x=e.touches[0].clientX-ox, y=e.touches[0].clientY-oy;
+    const p=paneel();
+    p.style.left=Math.max(0,Math.min(window.innerWidth-p.offsetWidth,x))+'px';
+    p.style.top=Math.max(0,Math.min(window.innerHeight-p.offsetHeight,y))+'px';
+    e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',()=>{
+    if(!dragging) return;
+    dragging=false;
+    const p=paneel();
+    ipPaneelPos={x:parseInt(p.style.left),y:parseInt(p.style.top)};
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════
+// GAS PUSH — INTERACTIES
+// ═══════════════════════════════════════════════════════════
+
+function pushInteractieGAS(rec){
+  const body={
+    action:'pushInteractie',
+    interactie:{
+      timestamp: new Date().toISOString(),
+      datum:     rec.datum,
+      dienst:    rec.dienst,
+      auteur:    rec.auteur,
+      subject:   rec.subject,
+      object:    rec.object,
+      valentie:  rec.valentie,
+      context:   rec.context,
+    }
+  };
+  fetch(GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),
+    mode:'no-cors'
+  }).catch(()=>{});
+}
+
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // Datum en dienst direct instellen
+  const dp=document.getElementById('datum-pick');
+  dp.value=vandaagISO();
+  const uur=new Date().getHours();
+  document.getElementById('dienst-sel').value=uur<15?'vroeg':'laat';
+
+  // Config en douche-historie laden
+  laadCfg();
+  laadDoucheLaatste();
+
+  // Pin-veld listeners
+  document.getElementById('pin-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') pinBevestig(); });
+  document.getElementById('pin-naam-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('pin-inp').focus(); });
+
+  // Datum/dienst wissel-listeners
+  dp.addEventListener('change',wissel);
+  document.getElementById('dienst-sel').addEventListener('change',wissel);
+
+  // Modal sluiten bij klik buiten box
+  document.getElementById('beheer-modal').addEventListener('click',e=>{
+    if(e.target===document.getElementById('beheer-modal')) sluitBeheer();
+  });
+
+  // Eerste render
+  wissel();
+});
+</script>
+</body>
+</html>
