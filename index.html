@@ -101,10 +101,21 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 /* vroeg-spiegel: grijze readonly regel boven het bewerkbare vak */
 .client-vroeg-spiegel{font-size:12px;color:var(--muted);font-family:var(--mono);padding:5px 10px 0 10px;font-style:italic;white-space:pre-wrap;border-bottom:1px dashed var(--border);line-height:1.4;user-select:text}
 
-/* ── MEDED ── */
-.meded-txt{background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 12px;resize:none;min-height:80px;width:100%;line-height:1.6;overflow:hidden}
-.meded-txt:focus{outline:none;background:var(--surf2)}
-.meded-txt::placeholder{color:var(--dimmer)}
+/* ── PUNTENLIJST (meded / nachtzorg) ── */
+.pnt-lijst{padding:6px 10px;min-height:40px}
+.pnt-item{display:flex;align-items:flex-start;gap:6px;padding:3px 0;font-family:var(--mono);font-size:13px;line-height:1.5}
+.pnt-item::before{content:'•';color:var(--acc);flex-shrink:0;padding-top:1px}
+.pnt-item-tekst{flex:1;white-space:pre-wrap;word-break:break-word}
+.pnt-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px;flex-shrink:0;line-height:1.5}
+.pnt-del:hover{color:var(--red)}
+.pnt-vroeg{color:var(--muted);font-style:italic;font-size:12px}
+.pnt-vroeg::before{content:'•';color:var(--muted);flex-shrink:0;padding-top:1px}
+.pnt-input-rij{display:flex;gap:6px;padding:4px 0;margin-top:2px}
+.pnt-input{flex:1;background:transparent;border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--mono);font-size:13px;padding:5px 8px}
+.pnt-input:focus{outline:none;border-color:var(--acc)}
+.pnt-input::placeholder{color:var(--dimmer)}
+.pnt-add{background:none;border:1px solid var(--border);color:var(--acc);font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:var(--r);cursor:pointer}
+.pnt-add:hover{background:var(--surf2)}
 
 /* ── FOOTER KNOPPEN ── */
 .footer-rij{display:flex;gap:8px;padding:10px 12px;flex-wrap:wrap}
@@ -296,13 +307,13 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
   <!-- NOG TE DOEN -->
   <div class="kaart">
     <div class="kaart-hdr">Nog te doen / mededelingen</div>
-    <textarea class="meded-txt" id="meded" placeholder="Vrije tekst voor overdracht…"></textarea>
+    <div class="pnt-lijst" id="pnt-meded"></div>
   </div>
 
   <!-- NACHTZORG OVERIG -->
   <div class="kaart">
     <div class="kaart-hdr">Nachtzorg overig</div>
-    <textarea class="meded-txt" id="meded-nz" placeholder="Vrije tekst voor Nachtzorg overdracht…"></textarea>
+    <div class="pnt-lijst" id="pnt-nz"></div>
   </div>
 
   <!-- FOOTER -->
@@ -588,8 +599,13 @@ function slaanDoucheLaatste(){
 
 function laadState(sl){
   const raw=localStorage.getItem(sl);
-  if(raw){ try{ return JSON.parse(raw); }catch(e){} }
-  return { hh:{}, douche:{}, def:{}, clienten:{}, meded:'', mededNZ:'', defNZ:{}, extraTaken:[] };
+  let s;
+  if(raw){ try{ s=JSON.parse(raw); }catch(e){} }
+  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[] };
+  // Backward compat: oude string-vorm → array
+  s.meded=normPunten(s.meded);
+  s.mededNZ=normPunten(s.mededNZ);
+  return s;
 }
 
 function slaanOpState(){
@@ -965,17 +981,74 @@ function wisEigenVeld(kamer){
   autoSave();
 }
 
+// ── Puntenlijst helpers (globaal) ─────────────────────────
+function normPunten(val){
+  if(Array.isArray(val)) return val;
+  if(typeof val==='string' && val.trim()) return val.split('\n').map(s=>s.trim()).filter(Boolean);
+  return [];
+}
+
+function renderPuntenlijst(containerId, stateKey, placeholder){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML='';
+
+  // Normaliseer state naar array
+  state[stateKey]=normPunten(state[stateKey]);
+
+  const ds=document.getElementById('dienst-sel').value;
+  const datum=document.getElementById('datum-pick').value;
+
+  // Vroeg-spiegel: toon vroeg-punten in laat-dienst
+  if(ds==='laat'){
+    const vroegState=laadState(buildSleutel(datum,'vroeg'));
+    const vroegItems=normPunten(vroegState[stateKey]);
+    vroegItems.forEach(txt=>{
+      const d=document.createElement('div');
+      d.className='pnt-item pnt-vroeg';
+      d.innerHTML=`<span class="pnt-item-tekst">[vroeg] ${escHtml2(txt)}</span>`;
+      el.appendChild(d);
+    });
+  }
+
+  // Huidige punten
+  state[stateKey].forEach((txt,i)=>{
+    const d=document.createElement('div');
+    d.className='pnt-item';
+    d.innerHTML=`<span class="pnt-item-tekst">${escHtml2(txt)}</span><button class="pnt-del" data-idx="${i}" title="Verwijder">✕</button>`;
+    d.querySelector('.pnt-del').addEventListener('click',()=>{
+      state[stateKey].splice(i,1);
+      autoSave();
+      renderPuntenlijst(containerId,stateKey,placeholder);
+    });
+    el.appendChild(d);
+  });
+
+  // Invoerveld voor nieuw punt
+  const rij=document.createElement('div');
+  rij.className='pnt-input-rij';
+  rij.innerHTML=`<input class="pnt-input" placeholder="${placeholder||'Nieuw punt…'}"><button class="pnt-add">+</button>`;
+  const inp=rij.querySelector('.pnt-input');
+  const btn=rij.querySelector('.pnt-add');
+  function voegToe(){
+    const v=inp.value.trim();
+    if(!v) return;
+    state[stateKey].push(v);
+    autoSave();
+    renderPuntenlijst(containerId,stateKey,placeholder);
+  }
+  btn.addEventListener('click',voegToe);
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); voegToe(); }});
+  el.appendChild(rij);
+}
+
 function renderMeded(){
-  const el=document.getElementById('meded');
-  el.value=state.meded||'';
-  el.oninput=()=>{ state.meded=el.value; autoSave(); };
+  renderPuntenlijst('pnt-meded','meded','Nieuw punt…');
 }
 
 function renderMededNZ(){
-  if(state.mededNZ===undefined) state.mededNZ='';
-  const el=document.getElementById('meded-nz');
-  el.value=state.mededNZ||'';
-  el.oninput=()=>{ state.mededNZ=el.value; autoSave(); };
+  if(state.mededNZ===undefined) state.mededNZ=[];
+  renderPuntenlijst('pnt-nz','mededNZ','Nachtzorg punt…');
 }
 
 function updateBadges(dagNr, ds){
@@ -1181,11 +1254,11 @@ function autoExpand(el){
 }
 
 document.addEventListener('input',e=>{
-  if(e.target.matches('.client-txt,.meded-txt')) autoExpand(e.target);
+  if(e.target.matches('.client-txt')) autoExpand(e.target);
 });
 
 function expandAlleTextareas(){
-  document.querySelectorAll('.client-txt,.meded-txt').forEach(autoExpand);
+  document.querySelectorAll('.client-txt').forEach(autoExpand);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1372,9 +1445,9 @@ function ipToggleKamer(nr){
 function ipInvoegen(){
   if(!ipSelectie.length) return;
 
-  // Doelveld = meest recent gefocuste .client-txt of #meded
-  const veld = ipDoelVeld || document.getElementById('meded');
-  if(!veld) return;
+  // Doelveld = meest recent gefocuste .client-txt
+  const veld = ipDoelVeld;
+  if(!veld || !veld.matches('.client-txt')) return;
 
   // Bouw de code-string: +0.11 -0.09 etc.
   const codes = ipSelectie.map(s=>(s.valentie==='pos'?'+':'-')+s.nr).join(' ');
@@ -1395,10 +1468,6 @@ function ipInvoegen(){
   const kamerNr = veld.dataset.kamer;
   if(kamerNr){
     state.clienten[kamerNr]=veld.value;
-  } else if(veld.id==='meded-nz'){
-    state.mededNZ=veld.value;
-  } else {
-    state.meded=veld.value;
   }
   autoSave();
 
@@ -1432,7 +1501,7 @@ function ipReset(){
 
 // Bijhouden welk veld actief is
 document.addEventListener('focusin',e=>{
-  if(e.target.matches('.client-txt,#meded,#meded-nz')) ipDoelVeld=e.target;
+  if(e.target.matches('.client-txt')) ipDoelVeld=e.target;
 });
 
 // ── DRAG ────────────────────────────────────────────────────
@@ -1549,16 +1618,18 @@ function openOverdracht(){
     });
     return items.length ? items.join('\n') : '  (geen)';
   }
-  const ptMeded=(state.meded||'').trim()||'(geen)';
-  const ptNZ=(state.mededNZ||'').trim()||'(geen)';
+  const mededArr=normPunten(state.meded);
+  const nzArr=normPunten(state.mededNZ);
+  const ptMeded=mededArr.length ? mededArr.map(p=>'  • '+p).join('\n') : '(geen)';
+  const ptNZ=nzArr.length ? nzArr.map(p=>'  • '+p).join('\n') : '(geen)';
 
   const emailBodyTekst=
     `Overdracht Nachtzorg — ${datum} — dienst: ${ds}\n` +
     `${'─'.repeat(40)}\n\n` +
     `DEFECATIE (doorgezet naar Nachtzorg)\n${ptDefecatie()}\n\n` +
     `BIJZONDERHEDEN PER CLIËNT\n${ptBijz()}\n\n` +
-    `NOG TE DOEN / MEDEDELINGEN\n  ${ptMeded}\n\n` +
-    `NACHTZORG OVERIG\n  ${ptNZ}\n`;
+    `NOG TE DOEN / MEDEDELINGEN\n${ptMeded}\n\n` +
+    `NACHTZORG OVERIG\n${ptNZ}\n`;
 
   // ── HTML opbouw ────────────────────────────────────────────
   let html=`<div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -1598,14 +1669,20 @@ function openOverdracht(){
   if(!heeftBijz) html+=`<div class="od-leeg">Geen bijzonderheden.</div>`;
 
   // Nog te doen
-  const mededTxt=(state.meded||'').trim();
   html+=`<h3>Nog te doen / mededelingen</h3>`;
-  html+=mededTxt?`<div class="od-tekst">${escHtml(mededTxt)}</div>`:`<div class="od-leeg">—</div>`;
+  if(mededArr.length){
+    mededArr.forEach(p=>{ html+=`<div class="od-tekst">• ${escHtml(p)}</div>`; });
+  } else {
+    html+=`<div class="od-leeg">—</div>`;
+  }
 
   // Nachtzorg overig
-  const nzTxt=(state.mededNZ||'').trim();
   html+=`<h3>Nachtzorg overig</h3>`;
-  html+=nzTxt?`<div class="od-tekst">${escHtml(nzTxt)}</div>`:`<div class="od-leeg">—</div>`;
+  if(nzArr.length){
+    nzArr.forEach(p=>{ html+=`<div class="od-tekst">• ${escHtml(p)}</div>`; });
+  } else {
+    html+=`<div class="od-leeg">—</div>`;
+  }
 
   // Checkboxen
   const mailSubject=encodeURIComponent('Overdracht Nachtzorg '+datum);
