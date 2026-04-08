@@ -2079,9 +2079,7 @@ function openOverdracht(){
   // ── Bouw platte tekst voor e-mailbody ──────────────────────
   function ptDefecatie(){
     const items=[];
-    if(!state.defNZ) state.defNZ={};
     KAMERS.forEach(k=>{
-      if(!state.defNZ[k.nr]) return;
       const st=state.def[k.nr]||{};
       if(st.hw) items.push(`  ${k.nr} — ${st.hw}`);
     });
@@ -2109,7 +2107,7 @@ function openOverdracht(){
   const emailBodyTekst=
     `Overdracht Nachtzorg — ${datum} — dienst: ${ds}\n` +
     `${'─'.repeat(40)}\n\n` +
-    `DEFECATIE (doorgezet naar Nachtzorg)\n${ptDefecatie()}\n\n` +
+    `DEFECATIE\n${ptDefecatie()}\n\n` +
     `BIJZONDERHEDEN PER CLIËNT\n${ptBijz()}\n\n` +
     `NOG TE DOEN / MEDEDELINGEN\n${ptMeded}\n\n` +
     `NACHTZORG OVERIG\n${ptNZ}\n`;
@@ -2123,9 +2121,7 @@ function openOverdracht(){
 
   // Defecatie
   const defItems=[];
-  if(!state.defNZ) state.defNZ={};
   KAMERS.forEach(k=>{
-    if(!state.defNZ[k.nr]) return;
     const st=state.def[k.nr]||{};
     if(st.hw) defItems.push({kamer:k.nr, hw:st.hw});
   });
@@ -2133,7 +2129,7 @@ function openOverdracht(){
   if(defItems.length){
     defItems.forEach(d=>{ html+=`<div class="od-item"><span class="od-kamer">${d.kamer}</span> — ${d.hw}</div>`; });
   } else {
-    html+=`<div class="od-leeg">Geen defecatie-registraties doorgezet.</div>`;
+    html+=`<div class="od-leeg">Geen defecatie-registraties.</div>`;
   }
 
   // Metingen
@@ -2247,7 +2243,16 @@ function odUitvoeren(mailHref){
 
   // Print/PDF — alleen als expliciet aangevinkt; kleine delay bij combo met e-mail
   if(wil.print || wil.pdf){
-    setTimeout(()=>{ window.print(); }, wil.email ? 900 : 0);
+    const origTitle=document.title;
+    const nu=new Date();
+    const tijdDatum=String(nu.getHours()).padStart(2,'0')+String(nu.getMinutes()).padStart(2,'0')
+      +' '+String(nu.getDate()).padStart(2,'0')+String(nu.getMonth()+1).padStart(2,'0')+nu.getFullYear();
+    const kamers=KAMERS[0].nr+'-'+KAMERS[KAMERS.length-1].nr;
+    document.title=`[${tijdDatum}][${kamers}]G5`;
+    setTimeout(()=>{
+      window.print();
+      setTimeout(()=>{ document.title=origTitle; }, 500);
+    }, wil.email ? 900 : 0);
   }
 
   // Opslaan / digitaal: bevestiging tonen
