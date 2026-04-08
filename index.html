@@ -321,7 +321,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <option value="laat">● Laat</option>
   </select>
   <span id="klok" style="font-size:13px;color:var(--warn);font-weight:bold;white-space:nowrap"></span>
-  <img src="QR-code%20met%20tekst%20en%20logo.png" alt="QR" class="qr-mini" id="qr-mini" title="Klik om QR-code te vergroten">
+  <img src="QR-code-tekst.png" alt="QR" class="qr-mini" id="qr-mini" title="Klik om QR-code te vergroten">
   <span id="save-ind">✓ opgeslagen</span>
   <div id="prog-wrap"><div id="prog-bar"></div></div>
 </div>
@@ -2464,7 +2464,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Overlay aanmaken
     const ov=document.createElement('div');
     ov.className='qr-overlay';
-    ov.innerHTML='<img src="QR-code%20met%20tekst%20en%20logo.png" alt="QR-code">';
+    ov.innerHTML='<img src="QR-code-tekst.png" alt="QR-code">';
     document.body.appendChild(ov);
 
     let timer=null;
