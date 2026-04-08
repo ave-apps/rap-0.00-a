@@ -88,6 +88,28 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .def-dag-rood{color:var(--red)}
 .def-dag-grijs{color:var(--muted)}
 
+/* ── OVERIGE METINGEN – NZ checkbox ── */
+.met-nz-cb{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:0 auto;transition:all .15s}
+.met-nz-cb:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+
+/* ── QR-code ── */
+.qr-mini{width:22px;height:22px;cursor:pointer;border-radius:3px;vertical-align:middle;opacity:.7;transition:opacity .2s}
+.qr-mini:hover{opacity:1}
+.qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.qr-overlay.actief{opacity:1;pointer-events:auto}
+.qr-overlay img{width:280px;height:280px;border-radius:8px;animation:qrSwirl .8s ease-out both}
+@keyframes qrSwirl{
+  0%{transform:scale(.08) rotate(720deg);opacity:0}
+  60%{transform:scale(1.08) rotate(-10deg);opacity:1}
+  80%{transform:scale(.97) rotate(3deg)}
+  100%{transform:scale(1) rotate(0deg);opacity:1}
+}
+.qr-overlay.uit img{animation:qrSwirlUit .5s ease-in both}
+@keyframes qrSwirlUit{
+  0%{transform:scale(1) rotate(0deg);opacity:1}
+  100%{transform:scale(.08) rotate(-720deg);opacity:0}
+}
+
 /* ── OVERIGE METINGEN ── */
 .met-tabel{width:100%;border-collapse:collapse}
 .met-tabel th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:normal;cursor:help;position:relative}
@@ -203,6 +225,24 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 #ip-insert-btn:active{background:var(--acc);color:#fff}
 #ip-clear-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:var(--r);cursor:pointer}
 
+/* ── AGENDA PANEEL ── */
+#ag-trigger{position:fixed;bottom:18px;right:130px;z-index:300;background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--muted);font-family:var(--mono);cursor:pointer;transition:all .2s}
+#ag-trigger:hover{border-color:var(--acc);color:var(--acc)}
+
+#ag-paneel{display:none;position:fixed;z-index:400;background:var(--surf);border:1px solid var(--acc);border-radius:10px;width:260px;box-shadow:0 4px 24px rgba(0,0,0,.5);user-select:none}
+#ag-paneel.open{display:block}
+#ag-drag{background:var(--surf2);padding:7px 10px;border-radius:10px 10px 0 0;cursor:grab;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+#ag-drag:active{cursor:grabbing}
+#ag-drag-title{font-size:11px;font-weight:bold;color:var(--acc);letter-spacing:.08em}
+#ag-min{font-size:14px;color:var(--muted);cursor:pointer;padding:0 4px;line-height:1}
+#ag-min:hover{color:var(--text)}
+
+.ag-kamers{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);padding:0}
+.ag-kamer{background:var(--surf2);padding:10px 6px;text-align:center;font-size:12px;font-family:var(--mono);cursor:pointer;transition:background .12s;color:var(--text);text-decoration:none;display:block}
+.ag-kamer:hover{background:var(--acc-dim);color:var(--acc)}
+.ag-kamer-naam{font-size:10px;color:var(--muted);margin-top:2px}
+.ag-kamer.geen-link{opacity:.4;cursor:default;pointer-events:none}
+
 /* ── PINCODE MODAL ── */
 #pin-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:600;align-items:center;justify-content:center}
 #pin-modal.open{display:flex}
@@ -270,6 +310,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <option value="laat">● Laat</option>
   </select>
   <span id="klok" style="font-size:13px;color:var(--warn);font-weight:bold;white-space:nowrap"></span>
+  <img src="QR-code met tekst en logo.png" alt="QR" class="qr-mini" id="qr-mini" title="Klik om QR-code te vergroten">
   <span id="save-ind">✓ opgeslagen</span>
   <div id="prog-wrap"><div id="prog-bar"></div></div>
 </div>
@@ -395,6 +436,11 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     </div>
 
     <div class="beh-sectie">
+      <h3>Agendakoppelingen per bewoner</h3>
+      <div id="beh-agenda-grid"></div>
+    </div>
+
+    <div class="beh-sectie">
       <h3>Bekende pincodes</h3>
       <div id="beh-pincode-lijst" style="font-size:12px"></div>
     </div>
@@ -406,6 +452,12 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
         <button class="btn btn-acc" onclick="voegExtraTaakToe()">+ Toevoegen</button>
       </div>
       <div id="beh-extra-lijst" style="margin-top:6px;font-size:12px;color:var(--muted)"></div>
+    </div>
+
+    <div class="beh-sectie" style="border-top:2px solid var(--red);padding-top:12px;margin-top:16px">
+      <h3 style="color:var(--red)">Testomgeving opschonen</h3>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px">Verwijder ALLE opgeslagen data (rapportages, configuratie, pincodes, douche-historie). Hierna start de applicatie als een schone testomgeving.</p>
+      <button class="btn btn-red" style="padding:6px 14px" onclick="wisAlleData()">⚠ Alle data verwijderen</button>
     </div>
 
     <button class="beh-save" onclick="slaanBeheerOp()">✓ Opslaan</button>
@@ -440,6 +492,18 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <button id="ip-insert-btn" onclick="ipInvoegen()">↵ Invoegen</button>
     <button id="ip-clear-btn" onclick="ipReset()">✕ Wis</button>
   </div>
+</div>
+
+<!-- AGENDA TRIGGER -->
+<button id="ag-trigger" onclick="agToggle()">&#128197; agenda's</button>
+
+<!-- AGENDA PANEEL -->
+<div id="ag-paneel">
+  <div id="ag-drag">
+    <span id="ag-drag-title">&#128197; AGENDA'S</span>
+    <span id="ag-min" onclick="agMinimaliseer()">−</span>
+  </div>
+  <div class="ag-kamers" id="ag-kamers-grid"></div>
 </div>
 
 <!-- PINCODE MODAL -->
@@ -632,7 +696,7 @@ function laadState(sl){
   const raw=localStorage.getItem(sl);
   let s;
   if(raw){ try{ s=JSON.parse(raw); }catch(e){} }
-  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[], metingen:{} };
+  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[], metingen:{}, metingenDef:{}, metingenNZ:{} };
   // Backward compat: oude string-vorm → array
   s.meded=normPunten(s.meded);
   s.mededNZ=normPunten(s.mededNZ);
@@ -1151,6 +1215,8 @@ function renderMetingen(){
 
   // State initialiseren
   if(!state.metingen) state.metingen = {};
+  if(!state.metingenDef) state.metingenDef = {};
+  if(!state.metingenNZ) state.metingenNZ = {};
 
   // Vroeg-state ophalen voor spiegelen (alleen relevant in laat-dienst)
   let vroegState = null;
@@ -1158,6 +1224,8 @@ function renderMetingen(){
     vroegState = laadState(buildSleutel(datum, 'vroeg'));
     if(!vroegState.metingen) vroegState.metingen = {};
   }
+
+  const totalCols = 4 + MET_COLS.length; // del + NZ + kamer + tijd + meetkolommen
 
   // Tabel opbouwen
   const tabel = document.createElement('table');
@@ -1167,6 +1235,7 @@ function renderMetingen(){
   const thead = document.createElement('thead');
   const hrij = document.createElement('tr');
   hrij.innerHTML = `<th style="text-align:center;color:var(--warn);width:20px" title="Verwijder meting"></th>
+    <th style="text-align:center;color:var(--warn);width:28px" title="Nachtzorg">NZ</th>
     <th style="width:48px">Kamer</th>
     <th style="width:36px" title="Tijdstip meting">tijd</th>`;
   MET_COLS.forEach(col => {
@@ -1182,19 +1251,35 @@ function renderMetingen(){
     const metingen = state.metingen[k.nr] || [];
     if(!state.metingen[k.nr]) state.metingen[k.nr] = [];
 
+    const nzChecked = !!state.metingenNZ[k.nr];
+    let nzGeplaatst = false; // NZ-checkbox alleen op eerste rij per kamer
+
+    // Hulpfunctie: maak NZ-cel (checkbox op eerste rij, leeg op volgende)
+    function nzCel(){
+      if(nzGeplaatst) return '<td></td>';
+      nzGeplaatst = true;
+      return `<td style="text-align:center"><input class="met-nz-cb" type="checkbox" data-kamer="${k.nr}" ${nzChecked?'checked':''}></td>`;
+    }
+
     // 1. Toon vroeg-metingen (readonly) als laat-dienst actief
     if(ds === 'laat' && vroegState){
       const vroegMet = (vroegState.metingen[k.nr] || []).filter(m => m.dienst === 'vroeg');
       vroegMet.forEach(m => {
         const tr = document.createElement('tr');
         tr.className = 'met-rij-vroeg';
-        let tdHtml = `<td></td><td><span class="met-kamer">${k.nr}</span><span class="met-initialen">[${m.auteur||'vroeg'}]</span></td>`;
+        let tdHtml = `<td></td>${nzCel()}<td><span class="met-kamer">${k.nr}</span><span class="met-initialen">[${m.auteur||'vroeg'}]</span></td>`;
         tdHtml += `<td style="text-align:center;color:var(--muted)">${m.ts||'—'}</td>`;
         MET_COLS.forEach(col => {
           const val = m[col.key] || '';
           tdHtml += `<td style="text-align:center"><input class="met-input" readonly value="${escHtml2(val)}" tabindex="-1"></td>`;
         });
         tr.innerHTML = tdHtml;
+        // NZ checkbox listener (als aanwezig in deze rij)
+        const dcb = tr.querySelector('.met-nz-cb');
+        if(dcb) dcb.addEventListener('change', e => {
+          state.metingenNZ[e.target.dataset.kamer] = e.target.checked;
+          slaanOpState();
+        });
         tbody.appendChild(tr);
       });
     }
@@ -1204,6 +1289,7 @@ function renderMetingen(){
       const globalIdx = metingen.indexOf(m);
       const tr = document.createElement('tr');
       let tdHtml = `<td style="text-align:center"><button class="met-del" data-kamer="${k.nr}" data-idx="${globalIdx}" title="Verwijder deze meting">✕</button></td>`;
+      tdHtml += nzCel();
       tdHtml += `<td><span class="met-kamer">${k.nr}</span><span class="met-initialen">[${m.auteur||ds}]</span></td>`;
       tdHtml += `<td style="text-align:center;color:var(--muted);font-size:11px">${m.ts||'—'}</td>`;
       MET_COLS.forEach((col, ci) => {
@@ -1211,6 +1297,13 @@ function renderMetingen(){
         tdHtml += `<td style="text-align:center"><input class="met-input" data-kamer="${k.nr}" data-idx="${globalIdx}" data-col="${col.key}" value="${escHtml2(val)}" placeholder="${col.ph}"></td>`;
       });
       tr.innerHTML = tdHtml;
+
+      // NZ checkbox listener (als aanwezig in deze rij)
+      const dcb = tr.querySelector('.met-nz-cb');
+      if(dcb) dcb.addEventListener('change', e => {
+        state.metingenNZ[e.target.dataset.kamer] = e.target.checked;
+        slaanOpState();
+      });
 
       // Change-listeners op invoervelden
       tr.querySelectorAll('.met-input:not([readonly])').forEach(inp => {
@@ -1255,9 +1348,21 @@ function renderMetingen(){
     // 3. Aangroei-rij: "+ meting toevoegen"
     const addTr = document.createElement('tr');
     addTr.className = 'met-add-rij';
-    addTr.innerHTML = `<td colspan="${3 + MET_COLS.length}">
-      <button class="met-add-btn" data-kamer="${k.nr}">+ meting ${k.nr}</button>
-    </td>`;
+    // Als NZ-checkbox nog niet geplaatst (geen metingen), toon hem hier
+    if(!nzGeplaatst){
+      addTr.innerHTML = `${nzCel()}<td colspan="${totalCols - 1}">
+        <button class="met-add-btn" data-kamer="${k.nr}">+ meting ${k.nr}</button>
+      </td>`;
+      const dcb = addTr.querySelector('.met-nz-cb');
+      if(dcb) dcb.addEventListener('change', e => {
+        state.metingenNZ[e.target.dataset.kamer] = e.target.checked;
+        slaanOpState();
+      });
+    } else {
+      addTr.innerHTML = `<td colspan="${totalCols}">
+        <button class="met-add-btn" data-kamer="${k.nr}">+ meting ${k.nr}</button>
+      </td>`;
+    }
     addTr.querySelector('.met-add-btn').addEventListener('click', () => {
       const nu = new Date();
       const ts = String(nu.getHours()).padStart(2,'0') + ':' + String(nu.getMinutes()).padStart(2,'0');
@@ -1280,7 +1385,7 @@ function renderMetingen(){
     // Scheidingslijn tussen kamers
     if(k !== KAMERS[KAMERS.length - 1]){
       const sepTr = document.createElement('tr');
-      sepTr.innerHTML = `<td colspan="${3 + MET_COLS.length}" style="padding:0;height:1px;background:var(--border)"></td>`;
+      sepTr.innerHTML = `<td colspan="${totalCols}" style="padding:0;height:1px;background:var(--border)"></td>`;
       tbody.appendChild(sepTr);
     }
   });
@@ -1338,9 +1443,25 @@ function wissel(){
 
 function resetDienst(){
   if(!confirm('Alle data van deze dienst wissen?')) return;
-  state={hh:{},douche:{},def:{},clienten:{},meded:'',mededNZ:'',defNZ:{},extraTaken:[],metingen:{}};
+  state={hh:{},douche:{},def:{},clienten:{},meded:'',mededNZ:'',defNZ:{},extraTaken:[],metingen:{},metingenDef:{},metingenNZ:{}};
   slaanOpState();
   wissel();
+}
+
+function wisAlleData(){
+  if(!confirm('WAARSCHUWING: Hiermee worden ALLE opgeslagen gegevens verwijderd (rapportages, configuratie, pincodes, douche-historie).\n\nDit kan niet ongedaan worden gemaakt.\n\nDoorgaan?')) return;
+  if(!confirm('Weet je het zeker? Typ OK in het volgende venster om te bevestigen.')) return;
+  const bevestig=prompt('Typ "WISSEN" om alle data definitief te verwijderen:');
+  if(bevestig!=='WISSEN'){ alert('Verwijdering geannuleerd.'); return; }
+  // Verwijder alle rap-g5b-* sleutels uit localStorage
+  const teVerwijderen=[];
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key && key.startsWith('rap-g5b')) teVerwijderen.push(key);
+  }
+  teVerwijderen.forEach(key=>localStorage.removeItem(key));
+  alert(`${teVerwijderen.length} opslag-item(s) verwijderd. De pagina wordt herladen.`);
+  location.reload();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1409,6 +1530,19 @@ function openBeheerModal(){
   document.getElementById('beh-email-nz').value=cfg.emailNachtzorg||'';
   document.getElementById('beh-pdf-pad').value=cfg.pdfPad||'';
 
+  // Agenda-links renderen
+  const agGrid=document.getElementById('beh-agenda-grid');
+  agGrid.innerHTML='';
+  const agLinks=cfg.agendaLinks||{};
+  KAMERS.forEach(k=>{
+    const rij=document.createElement('div');
+    rij.className='beh-rij';
+    rij.style.marginBottom='6px';
+    rij.innerHTML=`<label class="beh-label" style="min-width:44px">${k.nr}</label>
+      <input class="beh-input beh-agenda-url" data-kamer="${k.nr}" type="url" placeholder="https://agenda-url..." value="${escHtmlBeh(agLinks[k.nr]||'')}">`;
+    agGrid.appendChild(rij);
+  });
+
   // Pincode-lijst renderen
   const pins=laadPincodes();
   const pinLijst=document.getElementById('beh-pincode-lijst');
@@ -1447,6 +1581,13 @@ function slaanBeheerOp(){
   cfg.drempel=parseInt(document.getElementById('beh-drempel').value)||3;
   cfg.emailNachtzorg=(document.getElementById('beh-email-nz').value||'').trim();
   cfg.pdfPad=(document.getElementById('beh-pdf-pad').value||'').trim();
+  // Agenda-links opslaan
+  const agLinks={};
+  document.querySelectorAll('.beh-agenda-url').forEach(inp=>{
+    const url=inp.value.trim();
+    if(url) agLinks[inp.dataset.kamer]=url;
+  });
+  cfg.agendaLinks=agLinks;
   slaanCfgOp();
   sluitBeheer();
   wissel();
@@ -1795,6 +1936,109 @@ document.addEventListener('focusin',e=>{
 })();
 
 // ═══════════════════════════════════════════════════════════
+// AGENDA PANEEL
+// ═══════════════════════════════════════════════════════════
+
+let agPaneelPos = {x:null,y:null};
+
+function agToggle(){
+  const p=document.getElementById('ag-paneel');
+  if(p.classList.contains('open')) agMinimaliseer();
+  else agOpen();
+}
+
+function agOpen(){
+  const p=document.getElementById('ag-paneel');
+  agRenderKamers();
+  p.classList.add('open');
+  if(agPaneelPos.x===null){
+    const w=window.innerWidth, h=window.innerHeight;
+    p.style.left=Math.max(8,w-280)+'px';
+    p.style.top=Math.max(8,h-320)+'px';
+  } else {
+    p.style.left=agPaneelPos.x+'px';
+    p.style.top=agPaneelPos.y+'px';
+  }
+}
+
+function agMinimaliseer(){
+  document.getElementById('ag-paneel').classList.remove('open');
+}
+
+function agRenderKamers(){
+  const grid=document.getElementById('ag-kamers-grid');
+  const links=cfg.agendaLinks||{};
+  grid.innerHTML='';
+  KAMERS.forEach(k=>{
+    const url=links[k.nr]||'';
+    if(url){
+      const a=document.createElement('a');
+      a.className='ag-kamer';
+      a.href=url;
+      a.target='_blank';
+      a.rel='noopener';
+      a.innerHTML=`<div>${k.nr}</div>`;
+      grid.appendChild(a);
+    } else {
+      const d=document.createElement('div');
+      d.className='ag-kamer geen-link';
+      d.innerHTML=`<div>${k.nr}</div><div class="ag-kamer-naam">geen link</div>`;
+      grid.appendChild(d);
+    }
+  });
+}
+
+// ── AGENDA DRAG ──
+(function(){
+  const paneel=()=>document.getElementById('ag-paneel');
+  let dragging=false,ox=0,oy=0;
+
+  document.addEventListener('mousedown',e=>{
+    if(!e.target.closest('#ag-drag')) return;
+    dragging=true;
+    const p=paneel();
+    const rect=p.getBoundingClientRect();
+    ox=e.clientX-rect.left; oy=e.clientY-rect.top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const x=e.clientX-ox, y=e.clientY-oy;
+    const p=paneel();
+    p.style.left=Math.max(0,Math.min(window.innerWidth-p.offsetWidth,x))+'px';
+    p.style.top=Math.max(0,Math.min(window.innerHeight-p.offsetHeight,y))+'px';
+  });
+  document.addEventListener('mouseup',e=>{
+    if(!dragging) return;
+    dragging=false;
+    const p=paneel();
+    agPaneelPos={x:parseInt(p.style.left),y:parseInt(p.style.top)};
+  });
+
+  document.addEventListener('touchstart',e=>{
+    if(!e.target.closest('#ag-drag')) return;
+    dragging=true;
+    const p=paneel();
+    const rect=p.getBoundingClientRect();
+    ox=e.touches[0].clientX-rect.left; oy=e.touches[0].clientY-rect.top;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!dragging) return;
+    const x=e.touches[0].clientX-ox, y=e.touches[0].clientY-oy;
+    const p=paneel();
+    p.style.left=Math.max(0,Math.min(window.innerWidth-p.offsetWidth,x))+'px';
+    p.style.top=Math.max(0,Math.min(window.innerHeight-p.offsetHeight,y))+'px';
+    e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',()=>{
+    if(!dragging) return;
+    dragging=false;
+    const p=paneel();
+    agPaneelPos={x:parseInt(p.style.left),y:parseInt(p.style.top)};
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════
 // GAS PUSH — INTERACTIES
 // ═══════════════════════════════════════════════════════════
 
@@ -2069,6 +2313,30 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Eerste render
   wissel();
 });
+// ── QR-code mini → groot (swirl) ──
+(function(){
+  // Overlay aanmaken
+  const ov=document.createElement('div');
+  ov.className='qr-overlay';
+  ov.innerHTML='<img src="QR-code met tekst en logo.png" alt="QR-code">';
+  document.body.appendChild(ov);
+
+  let timer=null;
+  function sluit(){
+    ov.classList.add('uit');
+    setTimeout(()=>{ ov.classList.remove('actief','uit'); },500);
+  }
+  document.getElementById('qr-mini').addEventListener('click',()=>{
+    if(timer) clearTimeout(timer);
+    ov.classList.remove('uit');
+    ov.classList.add('actief');
+    timer=setTimeout(sluit,15000);
+  });
+  ov.addEventListener('click',()=>{
+    if(timer){ clearTimeout(timer); timer=null; }
+    sluit();
+  });
+})();
 </script>
 </body>
 </html>
