@@ -2177,18 +2177,59 @@ function openOverdracht(){
   const emailNZ=cfg.emailNachtzorg||'';
   const pdfPad=cfg.pdfPad||'';
 
-  // ── Bouw platte tekst voor e-mailbody ──────────────────────
+  // ── Bouw platte tekst voor e-mailbody (tabelstructuur) ─────
+  function ptRij(kolommen, breedtes){
+    return '| ' + kolommen.map((k,i) => {
+      const s = String(k||'');
+      const b = breedtes[i]||s.length;
+      return s.length > b ? s.slice(0,b) : s + ' '.repeat(b - s.length);
+    }).join(' | ') + ' |';
+  }
+  function ptLijn(breedtes){
+    return '+' + breedtes.map(b => '-'.repeat(b+2)).join('+') + '+';
+  }
+
+  // Defecatie-tabel
   function ptDefecatie(){
-    const items=[];
+    const rijen=[];
     KAMERS.forEach(k=>{
       if(!state.defNZ || !state.defNZ[k.nr]) return;
       const st=state.def[k.nr]||{};
-      if(st.hw) items.push(`  ${k.nr} — ${st.hw}`);
+      if(st.hw) rijen.push([k.nr, st.hw]);
     });
-    return items.length ? items.join('\n') : '  (geen)';
+    if(!rijen.length) return '(geen)';
+    const br=[6, Math.max(10, ...rijen.map(r=>r[1].length))];
+    let t=ptLijn(br)+'\n'+ptRij(['Kamer','Defecatie'],br)+'\n'+ptLijn(br);
+    rijen.forEach(r=>{ t+='\n'+ptRij(r,br); });
+    t+='\n'+ptLijn(br);
+    return t;
   }
+
+  // Metingen-tabel
+  function ptMetingen(){
+    const rijen=[];
+    if(!state.metingen) return '';
+    KAMERS.forEach(k=>{
+      (state.metingen[k.nr]||[]).filter(m=>m.dienst===ds).forEach(m=>{
+        const delen=[];
+        if(m.tempL||m.tempR) delen.push('T:'+( m.tempL||'?')+'/'+(m.tempR||'?'));
+        if(m.spo2)           delen.push('SpO2:'+m.spo2+'%');
+        if(m.tensieS||m.tensieD) delen.push('RR:'+(m.tensieS||'?')+'/'+(m.tensieD||'?'));
+        if(m.hartritme)      delen.push('HR:'+m.hartritme);
+        if(delen.length) rijen.push([k.nr, m.ts||'--:--', m.auteur||'', delen.join('  ')]);
+      });
+    });
+    if(!rijen.length) return '';
+    const br=[6, 5, 6, Math.max(14, ...rijen.map(r=>r[3].length))];
+    let t=ptLijn(br)+'\n'+ptRij(['Kamer','Tijd','Auteur','Waarden'],br)+'\n'+ptLijn(br);
+    rijen.forEach(r=>{ t+='\n'+ptRij(r,br); });
+    t+='\n'+ptLijn(br);
+    return t;
+  }
+
+  // Bijzonderheden-tabel
   function ptBijz(){
-    const items=[];
+    const rijen=[];
     const vroegState=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
     KAMERS.forEach(k=>{
       const nz=state.clientenNZ&&state.clientenNZ[k.nr];
@@ -2198,26 +2239,31 @@ function openOverdracht(){
       const txt=(state.clienten[k.nr]||'').trim();
       const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim());
       const vroegTxt=vroegState?(vroegState.clienten[k.nr]||'').trim():'';
-      // Verzamel alleen aangevinkte rijen
-      let regel='';
-      if(vroegTxt && mainNz) regel+=`\n    [vroeg] ${vroegTxt}`;
-      if(txt && mainNz) regel+=`\n    [laat]  ${txt}`;
-      extras.forEach((e,i)=>{ if(e && extrasNz[i]) regel+=`\n    [laat]  ${e}`; });
-      if(!regel) return;
-      items.push(`  ${k.nr}:${regel}`);
+      if(vroegTxt && mainNz) rijen.push([k.nr, 'vroeg', vroegTxt]);
+      if(txt && mainNz) rijen.push([k.nr, 'laat', txt]);
+      extras.forEach((e,i)=>{ if(e && extrasNz[i]) rijen.push([k.nr, 'laat', e]); });
     });
-    return items.length ? items.join('\n') : '  (geen)';
+    if(!rijen.length) return '(geen)';
+    const br=[6, 5, Math.max(20, ...rijen.map(r=>r[2].length))];
+    let t=ptLijn(br)+'\n'+ptRij(['Kamer','Dienst','Bijzonderheden'],br)+'\n'+ptLijn(br);
+    rijen.forEach(r=>{ t+='\n'+ptRij(r,br); });
+    t+='\n'+ptLijn(br);
+    return t;
   }
+
   const mededArr=normPunten(state.meded);
   const nzArr=normPunten(state.mededNZ);
-  const ptMeded=mededArr.length ? mededArr.map(p=>'  • '+p).join('\n') : '(geen)';
-  const ptNZ=nzArr.length ? nzArr.map(p=>'  • '+p).join('\n') : '(geen)';
+  const ptMeded=mededArr.length ? mededArr.map(p=>'  * '+p).join('\n') : '(geen)';
+  const ptNZ=nzArr.length ? nzArr.map(p=>'  * '+p).join('\n') : '(geen)';
 
+  const ptMetStr=ptMetingen();
   const emailBodyTekst=
-    `Overdracht Nachtzorg — ${datum} — dienst: ${ds}\n` +
-    `${'─'.repeat(40)}\n\n` +
+    `Overdracht Nachtzorg\n` +
+    `${datum}  |  dienst: ${ds}\n` +
+    `${'='.repeat(42)}\n\n` +
     `DEFECATIE\n${ptDefecatie()}\n\n` +
-    `BIJZONDERHEDEN PER CLIËNT\n${ptBijz()}\n\n` +
+    (ptMetStr ? `OVERIGE METINGEN\n${ptMetStr}\n\n` : '') +
+    `BIJZONDERHEDEN PER CLIENT\n${ptBijz()}\n\n` +
     `NOG TE DOEN / MEDEDELINGEN\n${ptMeded}\n\n` +
     `NACHTZORG OVERIG\n${ptNZ}\n`;
 
