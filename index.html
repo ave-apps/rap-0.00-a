@@ -134,7 +134,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .met-tabel th:hover .th-tip{display:block}
 
 /* ── CLIENT TEKSTVELDEN ── */
-.cl-nz-cb{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:6px auto 0;transition:all .15s;flex-shrink:0}
+.cl-nz-cb{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:8px 0 0 4px;transition:all .15s;flex-shrink:0}
 .cl-nz-cb:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
 .cl-add-btn{background:none;border:1px dashed var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer;width:100%;margin-top:2px}
 .cl-add-btn:hover{border-color:var(--acc);color:var(--acc)}
@@ -309,6 +309,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
   .douche-item:nth-last-child(-n+2){border-bottom:none}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js" defer></script>
 </head>
 <body>
 
@@ -320,7 +321,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
     <option value="laat">● Laat</option>
   </select>
   <span id="klok" style="font-size:13px;color:var(--warn);font-weight:bold;white-space:nowrap"></span>
-  <img src="QR-code met tekst en logo.png" alt="QR" class="qr-mini" id="qr-mini" title="Klik om QR-code te vergroten">
+  <img src="QR-code%20met%20tekst%20en%20logo.png" alt="QR" class="qr-mini" id="qr-mini" title="Klik om QR-code te vergroten">
   <span id="save-ind">✓ opgeslagen</span>
   <div id="prog-wrap"><div id="prog-bar"></div></div>
 </div>
@@ -380,9 +381,9 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
   <!-- BIJZONDERHEDEN PER CLIËNT -->
   <div class="kaart">
     <div class="kaart-hdr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:10px;color:var(--warn);text-transform:none;font-weight:normal" title="Vink NZ aan om kamer in overdracht op te nemen">NZ ↓</span>
       Bijzonderheden per cliënt
       <span style="font-size:10px;color:var(--muted);text-transform:none;font-style:italic">aanval · afspraak · gedrag · medicatie · VIM</span>
-      <span style="font-size:10px;color:var(--warn);margin-left:auto;text-transform:none;font-weight:normal" title="Vink NZ aan om kamer in overdracht op te nemen">NZ ↓</span>
     </div>
     <div id="lijst-clienten"></div>
   </div>
@@ -709,6 +710,12 @@ function laadState(sl){
   if(raw){ try{ s=JSON.parse(raw); }catch(e){} }
   if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[], metingen:{}, metingenDef:{}, metingenNZ:{}, clientenNZ:{}, clientenExtra:{} };
   if(!s.clientenNZ) s.clientenNZ={};
+  // Migratie: oud boolean-formaat → nieuw {main,extras} formaat
+  Object.keys(s.clientenNZ).forEach(nr=>{
+    if(typeof s.clientenNZ[nr]==='boolean'){
+      s.clientenNZ[nr]={main:s.clientenNZ[nr],extras:[]};
+    }
+  });
   if(!s.clientenExtra) s.clientenExtra={};
   // Backward compat: oude string-vorm → array
   s.meded=normPunten(s.meded);
@@ -1039,35 +1046,55 @@ function renderClienten(){
       spiegelHtml=`<div class="client-vroeg-spiegel" title="Notitie vroeg-dienst (readonly)">[${tijdLabel}] ${escHtml2(vroegTekst)}</div>`;
     }
 
+    // NZ state per rij
+    if(!state.clientenNZ[k.nr]) state.clientenNZ[k.nr]={main:false,extras:[]};
+    const nzState=state.clientenNZ[k.nr];
+
     // Extra notities (aangroei)
     const extras=state.clientenExtra[k.nr]||[];
     let extraHtml='';
     extras.forEach((txt,i)=>{
+      const exNz=!!(nzState.extras&&nzState.extras[i]);
       extraHtml+=`<div style="display:flex;align-items:flex-start">
+        <input class="cl-nz-cb cl-nz-extra" type="checkbox" data-kamer="${k.nr}" data-idx="${i}" ${exNz?'checked':''} title="Nachtzorg — opnemen in overdracht">
         <textarea class="cl-extra-txt" data-kamer="${k.nr}" data-idx="${i}" placeholder="—" rows="1">${escHtml2(txt)}</textarea>
         <button class="cl-extra-del" data-kamer="${k.nr}" data-idx="${i}" title="Verwijder notitie">✕</button>
       </div>`;
     });
 
-    const nzChecked=!!state.clientenNZ[k.nr];
     div.innerHTML=`
-      <input class="cl-nz-cb" type="checkbox" data-kamer="${k.nr}" ${nzChecked?'checked':''} title="Nachtzorg — opnemen in overdracht">
       <div style="border-right:1px solid var(--border);min-width:78px;flex-shrink:0">
         <div class="client-naam" style="border-right:none">${k.nr}</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;min-width:0">
         ${spiegelHtml}
-        <textarea class="client-txt" id="cl_${k.nr}" data-kamer="${k.nr}" placeholder="—" rows="2">${escHtml2(huidigeTekst)}</textarea>
+        <div style="display:flex;align-items:flex-start">
+          <input class="cl-nz-cb cl-nz-main" type="checkbox" data-kamer="${k.nr}" ${nzState.main?'checked':''} title="Nachtzorg — opnemen in overdracht">
+          <textarea class="client-txt" id="cl_${k.nr}" data-kamer="${k.nr}" placeholder="—" rows="2">${escHtml2(huidigeTekst)}</textarea>
+        </div>
         ${extraHtml}
         <button class="cl-add-btn" data-kamer="${k.nr}">+ notitie ${k.nr}</button>
       </div>
       <button class="wis-btn" data-kamer="${k.nr}" style="display:none" title="Wis tekst" onclick="wisEigenVeld('${k.nr}')">🗑</button>
     `;
 
-    // NZ checkbox
-    div.querySelector('.cl-nz-cb').addEventListener('change',e=>{
-      state.clientenNZ[e.target.dataset.kamer]=e.target.checked;
+    // NZ checkbox — hoofd-rij
+    div.querySelector('.cl-nz-main').addEventListener('change',e=>{
+      const nr=e.target.dataset.kamer;
+      if(!state.clientenNZ[nr]) state.clientenNZ[nr]={main:false,extras:[]};
+      state.clientenNZ[nr].main=e.target.checked;
       slaanOpState();
+    });
+    // NZ checkboxes — extra notities
+    div.querySelectorAll('.cl-nz-extra').forEach(cb=>{
+      cb.addEventListener('change',e=>{
+        const nr=e.target.dataset.kamer;
+        const idx=parseInt(e.target.dataset.idx);
+        if(!state.clientenNZ[nr]) state.clientenNZ[nr]={main:false,extras:[]};
+        if(!state.clientenNZ[nr].extras) state.clientenNZ[nr].extras=[];
+        state.clientenNZ[nr].extras[idx]=e.target.checked;
+        slaanOpState();
+      });
     });
 
     // Hoofd-textarea
@@ -1095,6 +1122,10 @@ function renderClienten(){
         if(!state.clientenExtra[k.nr]) return;
         state.clientenExtra[k.nr].splice(idx,1);
         if(!state.clientenExtra[k.nr].length) delete state.clientenExtra[k.nr];
+        // Verwijder ook NZ state voor deze extra
+        if(state.clientenNZ[k.nr]&&state.clientenNZ[k.nr].extras){
+          state.clientenNZ[k.nr].extras.splice(idx,1);
+        }
         slaanOpState();
         renderClienten();
       });
@@ -2160,16 +2191,20 @@ function openOverdracht(){
     const items=[];
     const vroegState=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
     KAMERS.forEach(k=>{
-      if(!state.clientenNZ || !state.clientenNZ[k.nr]) return;
+      const nz=state.clientenNZ&&state.clientenNZ[k.nr];
+      if(!nz) return;
+      const mainNz=nz.main;
+      const extrasNz=nz.extras||[];
       const txt=(state.clienten[k.nr]||'').trim();
-      const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim()).filter(Boolean);
+      const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim());
       const vroegTxt=vroegState?(vroegState.clienten[k.nr]||'').trim():'';
-      if(!txt && !extras.length && !vroegTxt) return;
-      let regel=`  ${k.nr}:`;
-      if(vroegTxt) regel+=`\n    [vroeg] ${vroegTxt}`;
-      if(txt) regel+=`\n    [laat]  ${txt}`;
-      extras.forEach(e=>{ regel+=`\n    [laat]  ${e}`; });
-      items.push(regel);
+      // Verzamel alleen aangevinkte rijen
+      let regel='';
+      if(vroegTxt && mainNz) regel+=`\n    [vroeg] ${vroegTxt}`;
+      if(txt && mainNz) regel+=`\n    [laat]  ${txt}`;
+      extras.forEach((e,i)=>{ if(e && extrasNz[i]) regel+=`\n    [laat]  ${e}`; });
+      if(!regel) return;
+      items.push(`  ${k.nr}:${regel}`);
     });
     return items.length ? items.join('\n') : '  (geen)';
   }
@@ -2228,21 +2263,26 @@ function openOverdracht(){
     html += `<h3>Overige metingen</h3><div class="od-tekst" style="white-space:pre">${escHtml(metStr)}</div>`;
   }
 
-  // Bijzonderheden — alleen kamers met NZ aangevinkt
+  // Bijzonderheden — alleen rijen met NZ aangevinkt
   html+=`<h3>Bijzonderheden per cliënt</h3>`;
   let heeftBijz=false;
   const vroegStateOd=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
   KAMERS.forEach(k=>{
-    if(!state.clientenNZ || !state.clientenNZ[k.nr]) return;
+    const nz=state.clientenNZ&&state.clientenNZ[k.nr];
+    if(!nz) return;
+    const mainNz=nz.main;
+    const extrasNz=nz.extras||[];
     const txt=(state.clienten[k.nr]||'').trim();
-    const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim()).filter(Boolean);
+    const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim());
     const vroegTxt=vroegStateOd?(vroegStateOd.clienten[k.nr]||'').trim():'';
-    if(!txt && !extras.length && !vroegTxt) return;
+    let kamerHtml='';
+    if(vroegTxt && mainNz) kamerHtml+=`<div class="od-tekst" style="color:var(--muted);font-style:italic">[vroeg] ${escHtml(vroegTxt)}</div>`;
+    if(txt && mainNz) kamerHtml+=`<div class="od-tekst">${escHtml(txt)}</div>`;
+    extras.forEach((e,i)=>{ if(e && extrasNz[i]) kamerHtml+=`<div class="od-tekst">${escHtml(e)}</div>`; });
+    if(!kamerHtml) return;
     heeftBijz=true;
     html+=`<div class="od-item"><span class="od-kamer">${k.nr}</span></div>`;
-    if(vroegTxt) html+=`<div class="od-tekst" style="color:var(--muted);font-style:italic">[vroeg] ${escHtml(vroegTxt)}</div>`;
-    if(txt) html+=`<div class="od-tekst">${escHtml(txt)}</div>`;
-    extras.forEach(e=>{ html+=`<div class="od-tekst">${escHtml(e)}</div>`; });
+    html+=kamerHtml;
   });
   if(!heeftBijz) html+=`<div class="od-leeg">Geen bijzonderheden.</div>`;
 
@@ -2321,16 +2361,37 @@ function odUitvoeren(mailHref){
 
   // Print/PDF — alleen als expliciet aangevinkt; kleine delay bij combo met e-mail
   if(wil.print || wil.pdf){
-    const origTitle=document.title;
     const nu=new Date();
     const tijdDatum=String(nu.getHours()).padStart(2,'0')+String(nu.getMinutes()).padStart(2,'0')
       +' '+String(nu.getDate()).padStart(2,'0')+String(nu.getMonth()+1).padStart(2,'0')+nu.getFullYear();
     const kamers=KAMERS[0].nr+'-'+KAMERS[KAMERS.length-1].nr;
-    document.title=`[${tijdDatum}][${kamers}]G5`;
-    setTimeout(()=>{
-      window.print();
-      setTimeout(()=>{ document.title=origTitle; }, 500);
-    }, wil.email ? 900 : 0);
+    const pdfNaam=`[${tijdDatum}][${kamers}]G5.pdf`;
+
+    if(wil.pdf && typeof html2pdf !== 'undefined'){
+      // Echte PDF-download via html2pdf.js
+      const bron=document.getElementById('overdracht-inner');
+      const opt={
+        margin:       [10,10,10,10],
+        filename:     pdfNaam,
+        image:        {type:'jpeg',quality:0.95},
+        html2canvas:  {scale:2,useCORS:true,backgroundColor:'#ffffff'},
+        jsPDF:        {unit:'mm',format:'a4',orientation:'portrait'}
+      };
+      html2pdf().set(opt).from(bron).save().then(()=>{
+        alert('PDF opgeslagen: '+pdfNaam);
+      }).catch(()=>{
+        alert('PDF genereren mislukt — fallback naar print-dialoog.');
+        window.print();
+      });
+    } else {
+      // Fallback: browser print-dialoog
+      const origTitle=document.title;
+      document.title=pdfNaam.replace('.pdf','');
+      setTimeout(()=>{
+        window.print();
+        setTimeout(()=>{ document.title=origTitle; }, 500);
+      }, wil.email ? 900 : 0);
+    }
   }
 
   // Opslaan / digitaal: bevestiging tonen
@@ -2403,7 +2464,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Overlay aanmaken
     const ov=document.createElement('div');
     ov.className='qr-overlay';
-    ov.innerHTML='<img src="QR-code met tekst en logo.png" alt="QR-code">';
+    ov.innerHTML='<img src="QR-code%20met%20tekst%20en%20logo.png" alt="QR-code">';
     document.body.appendChild(ov);
 
     let timer=null;
