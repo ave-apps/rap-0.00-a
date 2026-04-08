@@ -97,7 +97,8 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .qr-mini:hover{opacity:1}
 .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
 .qr-overlay.actief{opacity:1;pointer-events:auto}
-.qr-overlay img{width:280px;height:280px;border-radius:8px;animation:qrSwirl .8s ease-out both}
+.qr-overlay img{width:280px;height:280px;border-radius:8px;opacity:0;transform:scale(.08)}
+.qr-overlay.actief img{animation:qrSwirl .8s ease-out both}
 @keyframes qrSwirl{
   0%{transform:scale(.08) rotate(720deg);opacity:0}
   60%{transform:scale(1.08) rotate(-10deg);opacity:1}
@@ -348,9 +349,9 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
         <tr>
           <th style="text-align:center;color:var(--warn)" title="Nachtzorg">NZ</th>
           <th>Kamer</th>
-          <th>Normaal</th>
-          <th>Veel</th>
-          <th>Weinig</th>
+          <th style="font-size:9px;font-style:italic">(info dag t.b.v. nacht)</th>
+          <th style="font-size:9px;font-style:italic">(info dag t.b.v. nacht)</th>
+          <th style="font-size:9px;font-style:italic">(info dag t.b.v. nacht)</th>
           <th>Laatste</th>
         </tr>
       </thead>
