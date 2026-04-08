@@ -134,6 +134,15 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .met-tabel th:hover .th-tip{display:block}
 
 /* ── CLIENT TEKSTVELDEN ── */
+.cl-nz-cb{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:6px auto 0;transition:all .15s;flex-shrink:0}
+.cl-nz-cb:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.cl-add-btn{background:none;border:1px dashed var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer;width:100%;margin-top:2px}
+.cl-add-btn:hover{border-color:var(--acc);color:var(--acc)}
+.cl-extra-txt{flex:1;background:transparent;border:none;border-top:1px dashed var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:5px 10px;resize:none;min-height:36px;width:100%;overflow:hidden}
+.cl-extra-txt:focus{outline:none;background:var(--surf2)}
+.cl-extra-txt::placeholder{color:var(--dimmer)}
+.cl-extra-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 3px;line-height:1;align-self:flex-start;margin-top:6px}
+.cl-extra-del:hover{color:var(--red)}
 .client-rij{display:flex;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border)}
 .wis-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;}
 .wis-btn:hover{color:var(--red);}
@@ -370,9 +379,10 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 
   <!-- BIJZONDERHEDEN PER CLIËNT -->
   <div class="kaart">
-    <div class="kaart-hdr">
+    <div class="kaart-hdr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       Bijzonderheden per cliënt
       <span style="font-size:10px;color:var(--muted);text-transform:none;font-style:italic">aanval · afspraak · gedrag · medicatie · VIM</span>
+      <span style="font-size:10px;color:var(--warn);margin-left:auto;text-transform:none;font-weight:normal" title="Vink NZ aan om kamer in overdracht op te nemen">NZ ↓</span>
     </div>
     <div id="lijst-clienten"></div>
   </div>
@@ -697,7 +707,9 @@ function laadState(sl){
   const raw=localStorage.getItem(sl);
   let s;
   if(raw){ try{ s=JSON.parse(raw); }catch(e){} }
-  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[], metingen:{}, metingenDef:{}, metingenNZ:{} };
+  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[], metingen:{}, metingenDef:{}, metingenNZ:{}, clientenNZ:{}, clientenExtra:{} };
+  if(!s.clientenNZ) s.clientenNZ={};
+  if(!s.clientenExtra) s.clientenExtra={};
   // Backward compat: oude string-vorm → array
   s.meded=normPunten(s.meded);
   s.mededNZ=normPunten(s.mededNZ);
@@ -989,6 +1001,8 @@ function renderClienten(){
   c.innerHTML='';
   const ds=document.getElementById('dienst-sel').value;
   const datum=document.getElementById('datum-pick').value;
+  if(!state.clientenNZ) state.clientenNZ={};
+  if(!state.clientenExtra) state.clientenExtra={};
 
   KAMERS.forEach(k=>{
     const div=document.createElement('div');
@@ -1018,8 +1032,6 @@ function renderClienten(){
     // Huidige (laat) tekst — als leeg en vroeg heeft tekst, pre-fill met kopie
     let huidigeTekst=state.clienten[k.nr]||'';
 
-    const naamDiv=`<div class="client-naam">${k.nr}</div>`;
-
     // Vroeg-spiegel (alleen bij laat en als vroeg iets heeft)
     let spiegelHtml='';
     if(vroegTekst){
@@ -1027,24 +1039,81 @@ function renderClienten(){
       spiegelHtml=`<div class="client-vroeg-spiegel" title="Notitie vroeg-dienst (readonly)">[${tijdLabel}] ${escHtml2(vroegTekst)}</div>`;
     }
 
+    // Extra notities (aangroei)
+    const extras=state.clientenExtra[k.nr]||[];
+    let extraHtml='';
+    extras.forEach((txt,i)=>{
+      extraHtml+=`<div style="display:flex;align-items:flex-start">
+        <textarea class="cl-extra-txt" data-kamer="${k.nr}" data-idx="${i}" placeholder="—" rows="1">${escHtml2(txt)}</textarea>
+        <button class="cl-extra-del" data-kamer="${k.nr}" data-idx="${i}" title="Verwijder notitie">✕</button>
+      </div>`;
+    });
+
+    const nzChecked=!!state.clientenNZ[k.nr];
     div.innerHTML=`
+      <input class="cl-nz-cb" type="checkbox" data-kamer="${k.nr}" ${nzChecked?'checked':''} title="Nachtzorg — opnemen in overdracht">
       <div style="border-right:1px solid var(--border);min-width:78px;flex-shrink:0">
         <div class="client-naam" style="border-right:none">${k.nr}</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;min-width:0">
         ${spiegelHtml}
         <textarea class="client-txt" id="cl_${k.nr}" data-kamer="${k.nr}" placeholder="—" rows="2">${escHtml2(huidigeTekst)}</textarea>
+        ${extraHtml}
+        <button class="cl-add-btn" data-kamer="${k.nr}">+ notitie ${k.nr}</button>
       </div>
       <button class="wis-btn" data-kamer="${k.nr}" style="display:none" title="Wis tekst" onclick="wisEigenVeld('${k.nr}')">🗑</button>
     `;
 
-    const ta=div.querySelector('textarea');
+    // NZ checkbox
+    div.querySelector('.cl-nz-cb').addEventListener('change',e=>{
+      state.clientenNZ[e.target.dataset.kamer]=e.target.checked;
+      slaanOpState();
+    });
+
+    // Hoofd-textarea
+    const ta=div.querySelector('.client-txt');
     ta.addEventListener('input',e=>{
       state.clienten[k.nr]=e.target.value;
-      // Log wie schreef wanneer
       logClientAuteur(datum, k.nr);
       autoSave();
     });
+
+    // Extra textareas
+    div.querySelectorAll('.cl-extra-txt').forEach(et=>{
+      et.addEventListener('input',e=>{
+        const idx=parseInt(e.target.dataset.idx);
+        if(!state.clientenExtra[k.nr]) state.clientenExtra[k.nr]=[];
+        state.clientenExtra[k.nr][idx]=e.target.value;
+        autoSave();
+      });
+    });
+
+    // Verwijder-knoppen extra notities
+    div.querySelectorAll('.cl-extra-del').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        const idx=parseInt(e.target.dataset.idx);
+        if(!state.clientenExtra[k.nr]) return;
+        state.clientenExtra[k.nr].splice(idx,1);
+        if(!state.clientenExtra[k.nr].length) delete state.clientenExtra[k.nr];
+        slaanOpState();
+        renderClienten();
+      });
+    });
+
+    // Aangroei-knop
+    div.querySelector('.cl-add-btn').addEventListener('click',e=>{
+      const kamer=e.target.dataset.kamer;
+      if(!state.clientenExtra[kamer]) state.clientenExtra[kamer]=[];
+      state.clientenExtra[kamer].push('');
+      slaanOpState();
+      renderClienten();
+      // Focus nieuwe textarea
+      setTimeout(()=>{
+        const nieuw=document.querySelectorAll(`.cl-extra-txt[data-kamer="${kamer}"]`);
+        if(nieuw.length) nieuw[nieuw.length-1].focus();
+      },50);
+    });
+
     c.appendChild(div);
   });
 }
@@ -2081,6 +2150,7 @@ function openOverdracht(){
   function ptDefecatie(){
     const items=[];
     KAMERS.forEach(k=>{
+      if(!state.defNZ || !state.defNZ[k.nr]) return;
       const st=state.def[k.nr]||{};
       if(st.hw) items.push(`  ${k.nr} — ${st.hw}`);
     });
@@ -2090,12 +2160,15 @@ function openOverdracht(){
     const items=[];
     const vroegState=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
     KAMERS.forEach(k=>{
+      if(!state.clientenNZ || !state.clientenNZ[k.nr]) return;
       const txt=(state.clienten[k.nr]||'').trim();
+      const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim()).filter(Boolean);
       const vroegTxt=vroegState?(vroegState.clienten[k.nr]||'').trim():'';
-      if(!txt && !vroegTxt) return;
+      if(!txt && !extras.length && !vroegTxt) return;
       let regel=`  ${k.nr}:`;
       if(vroegTxt) regel+=`\n    [vroeg] ${vroegTxt}`;
       if(txt) regel+=`\n    [laat]  ${txt}`;
+      extras.forEach(e=>{ regel+=`\n    [laat]  ${e}`; });
       items.push(regel);
     });
     return items.length ? items.join('\n') : '  (geen)';
@@ -2120,9 +2193,10 @@ function openOverdracht(){
     <button class="btn" onclick="sluitOverdracht()" style="font-size:18px;padding:4px 10px;line-height:1">✕</button>
   </div>`;
 
-  // Defecatie
+  // Defecatie — alleen kamers met NZ aangevinkt
   const defItems=[];
   KAMERS.forEach(k=>{
+    if(!state.defNZ || !state.defNZ[k.nr]) return;
     const st=state.def[k.nr]||{};
     if(st.hw) defItems.push({kamer:k.nr, hw:st.hw});
   });
@@ -2154,18 +2228,21 @@ function openOverdracht(){
     html += `<h3>Overige metingen</h3><div class="od-tekst" style="white-space:pre">${escHtml(metStr)}</div>`;
   }
 
-  // Bijzonderheden — toon vroeg-notities grijs + laat-notities normaal
+  // Bijzonderheden — alleen kamers met NZ aangevinkt
   html+=`<h3>Bijzonderheden per cliënt</h3>`;
   let heeftBijz=false;
   const vroegStateOd=(ds==='laat')?laadState(buildSleutel(datum,'vroeg')):null;
   KAMERS.forEach(k=>{
+    if(!state.clientenNZ || !state.clientenNZ[k.nr]) return;
     const txt=(state.clienten[k.nr]||'').trim();
+    const extras=(state.clientenExtra&&state.clientenExtra[k.nr]||[]).map(s=>s.trim()).filter(Boolean);
     const vroegTxt=vroegStateOd?(vroegStateOd.clienten[k.nr]||'').trim():'';
-    if(!txt && !vroegTxt) return;
+    if(!txt && !extras.length && !vroegTxt) return;
     heeftBijz=true;
     html+=`<div class="od-item"><span class="od-kamer">${k.nr}</span></div>`;
     if(vroegTxt) html+=`<div class="od-tekst" style="color:var(--muted);font-style:italic">[vroeg] ${escHtml(vroegTxt)}</div>`;
     if(txt) html+=`<div class="od-tekst">${escHtml(txt)}</div>`;
+    extras.forEach(e=>{ html+=`<div class="od-tekst">${escHtml(e)}</div>`; });
   });
   if(!heeftBijz) html+=`<div class="od-leeg">Geen bijzonderheden.</div>`;
 
