@@ -88,6 +88,28 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .def-dag-rood{color:var(--red)}
 .def-dag-grijs{color:var(--muted)}
 
+/* ── OVERIGE METINGEN ── */
+.met-tabel{width:100%;border-collapse:collapse}
+.met-tabel th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:normal;cursor:help;position:relative}
+.met-tabel th:not(:first-child):not(:nth-child(2)){text-align:center}
+.met-tabel td{padding:4px 8px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:12px}
+.met-tabel tr:last-child td{border-bottom:none}
+.met-kamer{font-size:12px;font-weight:bold;color:var(--acc)}
+.met-rij-vroeg{background:rgba(107,114,128,.07)}
+.met-rij-vroeg td{color:var(--muted);font-style:italic;font-size:11px}
+.met-initialen{font-size:10px;color:var(--muted);margin-left:3px;font-style:normal}
+.met-input{background:var(--surf2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:3px 5px;border-radius:3px;width:100%;text-align:center}
+.met-input:focus{outline:1px solid var(--acc);border-color:var(--acc)}
+.met-input[readonly]{background:transparent;border-color:transparent;color:var(--muted);cursor:default;font-style:italic}
+.met-add-rij td{padding:3px 8px}
+.met-add-btn{background:none;border:1px dashed var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer;width:100%}
+.met-add-btn:hover{border-color:var(--acc);color:var(--acc)}
+.met-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 3px;line-height:1}
+.met-del:hover{color:var(--red)}
+/* Tooltip */
+.th-tip{display:none;position:absolute;left:0;top:100%;z-index:99;background:var(--surf2);border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-size:11px;color:var(--text);text-align:left;text-transform:none;letter-spacing:0;font-weight:normal;white-space:normal;width:240px;box-shadow:0 4px 16px rgba(0,0,0,.5);line-height:1.5;cursor:default;pointer-events:none}
+.met-tabel th:hover .th-tip{display:block}
+
 /* ── CLIENT TEKSTVELDEN ── */
 .client-rij{display:flex;align-items:flex-start;gap:6px;border-bottom:1px solid var(--border)}
 .wis-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;}
@@ -293,6 +315,15 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
       </thead>
       <tbody id="def-tbody"></tbody>
     </table>
+  </div>
+
+  <!-- OVERIGE METINGEN -->
+  <div class="kaart" id="kaart-metingen">
+    <div class="kaart-hdr">
+      Overige metingen
+      <span style="font-size:10px;color:var(--muted);text-transform:none;font-style:italic">temp · SpO₂ · tensie · hartritme</span>
+    </div>
+    <div id="metingen-container"></div>
   </div>
 
   <!-- BIJZONDERHEDEN PER CLIËNT -->
@@ -601,7 +632,7 @@ function laadState(sl){
   const raw=localStorage.getItem(sl);
   let s;
   if(raw){ try{ s=JSON.parse(raw); }catch(e){} }
-  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[] };
+  if(!s) s={ hh:{}, douche:{}, def:{}, clienten:{}, meded:[], mededNZ:[], defNZ:{}, extraTaken:[], metingen:{} };
   // Backward compat: oude string-vorm → array
   s.meded=normPunten(s.meded);
   s.mededNZ=normPunten(s.mededNZ);
@@ -1051,6 +1082,213 @@ function renderMededNZ(){
   renderPuntenlijst('pnt-nz','mededNZ','Nachtzorg punt…');
 }
 
+// ═══════════════════════════════════════════════════════════
+// OVERIGE METINGEN
+// ═══════════════════════════════════════════════════════════
+
+/*
+  state.metingen = {
+    "0.07": [
+      { ts: "08:32", auteur: "AV", dienst: "vroeg",
+        tempL:"36.9", tempR:"37.1", spo2:"98", tensieS:"125", tensieD:"83", hartritme:"75" }
+    ],
+    ...
+  }
+*/
+
+const MET_COLS = [
+  {
+    key: 'tempL',
+    label: 'temp L',
+    ph: '36.8',
+    tip: 'Lichaamstemperatuur via het oor (links). Normaal: 36,0–37,5 °C. Koorts vanaf 38,0 °C. Meet minstens 20–30 min. na inspanning of warme drank. Trek het oor iets omhoog en naar achteren voor een goede meting.',
+    suffix: ''
+  },
+  {
+    key: 'tempR',
+    label: 'temp R',
+    ph: '36.8',
+    tip: 'Lichaamstemperatuur via het oor (rechts). Kan afwijken van links. Gebruik steeds hetzelfde oor als standaard. Verhoging: 37,5–38,0 °C. Koorts: ≥ 38,0 °C.',
+    suffix: ''
+  },
+  {
+    key: 'spo2',
+    label: 'SpO₂ %',
+    ph: '98',
+    tip: 'Zuurstofverzadiging (saturatie): het percentage hemoglobine dat zuurstof vervoert, gemeten met een saturatiemeter (knijper op de vinger). Normaal: 95–100 %. Onder 94 %: verhoogde aandacht. Onder 90 %: raadpleeg arts. Infraroodlicht meet het percentage in het bloed.',
+    suffix: '%'
+  },
+  {
+    key: 'tensieS',
+    label: 'tens S',
+    ph: '120',
+    tip: 'Tensie — bovendruk (systolisch): de druk op het moment dat het hart samenknijpt. Normaal: 90–140 mmHg. Hypertensie: ≥ 140. Ernstig verhoogd: ≥ 180. Noteer als "systolisch/diastolisch", bv. 125/83.',
+    suffix: ''
+  },
+  {
+    key: 'tensieD',
+    label: 'tens D',
+    ph: '80',
+    tip: 'Tensie — onderdruk (diastolisch): de druk wanneer het hart zich ontspant tussen twee slagen. Normaal: 60–90 mmHg. Hypotensie: < 60. Hoge onderdruk: ≥ 90. Schommelt door inspanning, emotie en stress.',
+    suffix: ''
+  },
+  {
+    key: 'hartritme',
+    label: 'hartritme',
+    ph: '70',
+    tip: 'Hartritme (polsslag) in slagen per minuut. Rusthartslag normaal: 60–100/min. Tachycardie: > 100/min in rust. Bradycardie: < 50–60/min in rust. Bij aritmie klopt het hart onregelmatig — noteer dit in bijzonderheden.',
+    suffix: '/min'
+  },
+];
+
+function renderMetingen(){
+  const container = document.getElementById('metingen-container');
+  if(!container) return;
+  container.innerHTML = '';
+
+  const ds  = document.getElementById('dienst-sel').value;
+  const datum = document.getElementById('datum-pick').value;
+
+  // State initialiseren
+  if(!state.metingen) state.metingen = {};
+
+  // Vroeg-state ophalen voor spiegelen (alleen relevant in laat-dienst)
+  let vroegState = null;
+  if(ds === 'laat'){
+    vroegState = laadState(buildSleutel(datum, 'vroeg'));
+    if(!vroegState.metingen) vroegState.metingen = {};
+  }
+
+  // Tabel opbouwen
+  const tabel = document.createElement('table');
+  tabel.className = 'met-tabel';
+
+  // Header
+  const thead = document.createElement('thead');
+  const hrij = document.createElement('tr');
+  hrij.innerHTML = `<th style="text-align:center;color:var(--warn);width:20px" title="Verwijder meting"></th>
+    <th style="width:48px">Kamer</th>
+    <th style="width:36px" title="Tijdstip meting">tijd</th>`;
+  MET_COLS.forEach(col => {
+    hrij.innerHTML += `<th><span title="${col.tip}">${col.label}${col.suffix?'<small style="font-size:9px;color:var(--muted)"> '+col.suffix+'</small>':''}</span>
+      <span class="th-tip">${col.tip}</span></th>`;
+  });
+  thead.appendChild(hrij);
+  tabel.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  KAMERS.forEach(k => {
+    const metingen = state.metingen[k.nr] || [];
+    if(!state.metingen[k.nr]) state.metingen[k.nr] = [];
+
+    // 1. Toon vroeg-metingen (readonly) als laat-dienst actief
+    if(ds === 'laat' && vroegState){
+      const vroegMet = (vroegState.metingen[k.nr] || []).filter(m => m.dienst === 'vroeg');
+      vroegMet.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.className = 'met-rij-vroeg';
+        let tdHtml = `<td></td><td><span class="met-kamer">${k.nr}</span><span class="met-initialen">[${m.auteur||'vroeg'}]</span></td>`;
+        tdHtml += `<td style="text-align:center;color:var(--muted)">${m.ts||'—'}</td>`;
+        MET_COLS.forEach(col => {
+          const val = m[col.key] || '';
+          tdHtml += `<td style="text-align:center"><input class="met-input" readonly value="${escHtml2(val)}" tabindex="-1"></td>`;
+        });
+        tr.innerHTML = tdHtml;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 2. Toon eigen metingen van huidige dienst
+    metingen.filter(m => m.dienst === ds).forEach((m, idx) => {
+      const globalIdx = metingen.indexOf(m);
+      const tr = document.createElement('tr');
+      let tdHtml = `<td style="text-align:center"><button class="met-del" data-kamer="${k.nr}" data-idx="${globalIdx}" title="Verwijder deze meting">✕</button></td>`;
+      tdHtml += `<td><span class="met-kamer">${k.nr}</span><span class="met-initialen">[${m.auteur||ds}]</span></td>`;
+      tdHtml += `<td style="text-align:center;color:var(--muted);font-size:11px">${m.ts||'—'}</td>`;
+      MET_COLS.forEach((col, ci) => {
+        const val = m[col.key] || '';
+        tdHtml += `<td style="text-align:center"><input class="met-input" data-kamer="${k.nr}" data-idx="${globalIdx}" data-col="${col.key}" value="${escHtml2(val)}" placeholder="${col.ph}"></td>`;
+      });
+      tr.innerHTML = tdHtml;
+
+      // Change-listeners op invoervelden
+      tr.querySelectorAll('.met-input:not([readonly])').forEach(inp => {
+        inp.addEventListener('change', () => {
+          const i = parseInt(inp.dataset.idx);
+          if(!state.metingen[inp.dataset.kamer][i]) return;
+          state.metingen[inp.dataset.kamer][i][inp.dataset.col] = inp.value.trim();
+          autoSave();
+        });
+        // ENTER → volgende kamer / volgende veld
+        inp.addEventListener('keydown', e => {
+          if(e.key !== 'Enter') return;
+          e.preventDefault();
+          const allInputs = [...tr.querySelectorAll('.met-input:not([readonly])')];
+          const huidigIdx = allInputs.indexOf(inp);
+          if(huidigIdx < allInputs.length - 1){
+            allInputs[huidigIdx + 1].focus();
+          } else {
+            // Laatste veld van de rij → ga naar de '+ meting' knop van de VOLGENDE kamer
+            const kamerIdx = KAMERS.findIndex(km => km.nr === inp.dataset.kamer);
+            const volgendeKamer = KAMERS[kamerIdx + 1];
+            if(volgendeKamer){
+              const btn = document.querySelector(`.met-add-btn[data-kamer="${volgendeKamer.nr}"]`);
+              if(btn) btn.focus();
+            }
+          }
+        });
+      });
+
+      // Verwijder-knop
+      tr.querySelector('.met-del').addEventListener('click', e => {
+        const kamer = e.target.dataset.kamer;
+        const i = parseInt(e.target.dataset.idx);
+        state.metingen[kamer].splice(i, 1);
+        autoSave();
+        renderMetingen();
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    // 3. Aangroei-rij: "+ meting toevoegen"
+    const addTr = document.createElement('tr');
+    addTr.className = 'met-add-rij';
+    addTr.innerHTML = `<td colspan="${3 + MET_COLS.length}">
+      <button class="met-add-btn" data-kamer="${k.nr}">+ meting ${k.nr}</button>
+    </td>`;
+    addTr.querySelector('.met-add-btn').addEventListener('click', () => {
+      const nu = new Date();
+      const ts = String(nu.getHours()).padStart(2,'0') + ':' + String(nu.getMinutes()).padStart(2,'0');
+      const auteur = (ipAuteur && ipAuteur.naam) ? ipAuteur.naam : (ds === 'vroeg' ? 'vroeg' : 'laat');
+      state.metingen[k.nr].push({
+        ts, auteur, dienst: ds,
+        tempL:'', tempR:'', spo2:'', tensieS:'', tensieD:'', hartritme:''
+      });
+      autoSave();
+      renderMetingen();
+      // Focus eerste invoerveld van nieuwe rij
+      setTimeout(() => {
+        const nieuweTr = document.querySelector(`[data-kamer="${k.nr}"][data-idx="${state.metingen[k.nr].length - 1}"]`);
+        if(nieuweTr) nieuweTr.focus();
+      }, 50);
+    });
+
+    tbody.appendChild(addTr);
+
+    // Scheidingslijn tussen kamers
+    if(k !== KAMERS[KAMERS.length - 1]){
+      const sepTr = document.createElement('tr');
+      sepTr.innerHTML = `<td colspan="${3 + MET_COLS.length}" style="padding:0;height:1px;background:var(--border)"></td>`;
+      tbody.appendChild(sepTr);
+    }
+  });
+
+  tabel.appendChild(tbody);
+  container.appendChild(tabel);
+}
+
 function updateBadges(dagNr, ds){
   const taken=getTaken(dagNr,ds);
   const hhGed=taken.filter(t=>state.hh[t.id]).length;
@@ -1078,6 +1316,7 @@ function renderAll(datum, dagNr, ds){
   renderClienten();
   renderMeded();
   renderMededNZ();
+  renderMetingen();
   renderNotificaties(datum,dagNr);
   // Toon overdracht-knop alleen bij laat-dienst
   document.getElementById('btn-overdracht-nz').style.display=(ds==='laat')?'':'none';
@@ -1099,7 +1338,7 @@ function wissel(){
 
 function resetDienst(){
   if(!confirm('Alle data van deze dienst wissen?')) return;
-  state={hh:{},douche:{},def:{},clienten:{},meded:'',mededNZ:'',defNZ:{},extraTaken:[]};
+  state={hh:{},douche:{},def:{},clienten:{},meded:'',mededNZ:'',defNZ:{},extraTaken:[],metingen:{}};
   slaanOpState();
   wissel();
 }
@@ -1651,6 +1890,27 @@ function openOverdracht(){
     defItems.forEach(d=>{ html+=`<div class="od-item"><span class="od-kamer">${d.kamer}</span> — ${d.hw}</div>`; });
   } else {
     html+=`<div class="od-leeg">Geen defecatie-registraties doorgezet.</div>`;
+  }
+
+  // Metingen
+  const metStr = (() => {
+    if(!state.metingen) return '';
+    const regels = [];
+    KAMERS.forEach(k => {
+      const rijen = (state.metingen[k.nr]||[]).filter(m => m.dienst === ds);
+      rijen.forEach(m => {
+        const delen = [];
+        if(m.tempL || m.tempR) delen.push(`temp ${m.tempL||'?'}/${m.tempR||'?'} °C`);
+        if(m.spo2)             delen.push(`SpO₂ ${m.spo2}%`);
+        if(m.tensieS||m.tensieD) delen.push(`tens ${m.tensieS||'?'}/${m.tensieD||'?'}`);
+        if(m.hartritme)        delen.push(`HR ${m.hartritme}/min`);
+        if(delen.length) regels.push(`  ${k.nr} [${m.ts||'??:??'}] ${m.auteur||''}: ${delen.join(' · ')}`);
+      });
+    });
+    return regels.join('\n');
+  })();
+  if(metStr) {
+    html += `<h3>Overige metingen</h3><div class="od-tekst" style="white-space:pre">${escHtml(metStr)}</div>`;
   }
 
   // Bijzonderheden — toon vroeg-notities grijs + laat-notities normaal
