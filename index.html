@@ -2317,31 +2317,34 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Eerste render
   wissel();
-});
-// ── QR-code mini → groot (swirl) ──
-(function(){
-  // Overlay aanmaken
-  const ov=document.createElement('div');
-  ov.className='qr-overlay';
-  ov.innerHTML='<img src="QR-code met tekst en logo.png" alt="QR-code">';
-  document.body.appendChild(ov);
 
-  let timer=null;
-  function sluit(){
-    ov.classList.add('uit');
-    setTimeout(()=>{ ov.classList.remove('actief','uit'); },500);
-  }
-  document.getElementById('qr-mini').addEventListener('click',()=>{
-    if(timer) clearTimeout(timer);
-    ov.classList.remove('uit');
-    ov.classList.add('actief');
-    timer=setTimeout(sluit,15000);
-  });
-  ov.addEventListener('click',()=>{
-    if(timer){ clearTimeout(timer); timer=null; }
-    sluit();
-  });
-})();
+  // ── QR-code mini → groot (swirl) ──
+  (function(){
+    const mini=document.getElementById('qr-mini');
+    if(!mini) return;                       // bescherming: element moet bestaan
+    // Overlay aanmaken
+    const ov=document.createElement('div');
+    ov.className='qr-overlay';
+    ov.innerHTML='<img src="QR-code met tekst en logo.png" alt="QR-code">';
+    document.body.appendChild(ov);
+
+    let timer=null;
+    function sluit(){
+      ov.classList.add('uit');
+      setTimeout(()=>{ ov.classList.remove('actief','uit'); },500);
+    }
+    mini.addEventListener('click',()=>{
+      if(timer) clearTimeout(timer);
+      ov.classList.remove('uit');
+      ov.classList.add('actief');
+      timer=setTimeout(sluit,15000);
+    });
+    ov.addEventListener('click',()=>{
+      if(timer){ clearTimeout(timer); timer=null; }
+      sluit();
+    });
+  })();
+});
 </script>
 </body>
 </html>
