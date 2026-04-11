@@ -362,8 +362,8 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
           <th>Kamer</th>
           <th style="text-align:center;color:var(--green)">Normaal</th>
           <th style="text-align:center;color:var(--limegroen)">Veel</th>
-          <th style="text-align:center;color:var(--warn)">Weinig</th>
-          <th style="text-align:center;color:var(--red)" title="Raadpleeg beleid">Geen</th>
+          <th style="text-align:center;color:var(--warn)" title="Zie Medimo/D-beleid">Weinig</th>
+          <th style="text-align:center;color:var(--red)" title="Zie Medimo/D-beleid">Geen</th>
           <th>Laatste</th>
         </tr>
       </thead>
@@ -972,8 +972,8 @@ function renderDef(datum){
       <td><span class="def-kamer">${k.nr}</span></td>
       <td style="text-align:center"><input class="def-cb normaal" type="checkbox" data-kamer="${k.nr}" data-hw="Normaal" ${st.hw==='Normaal'?'checked':''}></td>
       <td style="text-align:center"><input class="def-cb veel" type="checkbox" data-kamer="${k.nr}" data-hw="Veel" ${st.hw==='Veel'?'checked':''}></td>
-      <td style="text-align:center"><input class="def-cb weinig" type="checkbox" data-kamer="${k.nr}" data-hw="Weinig" ${st.hw==='Weinig'?'checked':''}></td>
-      <td style="text-align:center"><input class="def-cb geen" type="checkbox" data-kamer="${k.nr}" data-hw="Geen" ${st.hw==='Geen'?'checked':''}></td>
+      <td style="text-align:center"><input class="def-cb weinig" type="checkbox" data-kamer="${k.nr}" data-hw="Weinig" title="Zie Medimo/D-beleid" ${st.hw==='Weinig'?'checked':''}></td>
+      <td style="text-align:center"><input class="def-cb geen" type="checkbox" data-kamer="${k.nr}" data-hw="Geen" title="Zie Medimo/D-beleid" ${st.hw==='Geen'?'checked':''}></td>
       <td><span class="${klasse}" style="font-size:11px">${tekst}</span></td>
     `;
 
