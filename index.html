@@ -9,7 +9,7 @@
   --bg:#0f1117; --surf:#1a1d27; --surf2:#21253a; --border:#2e3350;
   --acc:#3b82f6; --acc-dim:#1e3a5f; --green:#22c55e; --green-dim:#14532d;
   --text:#e8eaf0; --muted:#6b7280; --dimmer:#374151;
-  --red:#ef4444; --red-dim:#3b0d0d; --warn:#f59e0b; --warn-dim:#3d2600;
+  --red:#ef4444; --red-dim:#3b0d0d; --warn:#f59e0b; --warn-dim:#3d2600; --limegroen:#84cc16;
   --r:6px; --mono:'Courier New',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -69,7 +69,7 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 /* ── DEFECATIE ── */
 .def-tabel{width:100%;border-collapse:collapse}
 .def-tabel th{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--border);text-align:left;font-weight:normal}
-.def-tabel th:not(:first-child):not(:nth-child(2)){text-align:center}
+.def-tabel th:not(:first-child):not(:nth-child(2)):not(:last-child){text-align:center}
 .def-nz-cb{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:0 auto;transition:all .15s}
 .def-nz-cb:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
 .kaart-hdr-nz{display:flex;align-items:center;gap:6px;font-size:10px;text-transform:none;font-weight:normal;color:var(--warn)}
@@ -80,8 +80,9 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
 .def-kamer{font-size:12px;font-weight:bold;color:var(--acc)}
 .def-cb{appearance:none;width:18px;height:18px;border:2px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surf2);display:block;margin:0 auto;transition:all .15s}
 .def-cb.normaal:checked{background:var(--green);border-color:var(--green);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
-.def-cb.veel:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
-.def-cb.weinig:checked{background:var(--red);border-color:var(--red);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.def-cb.veel:checked{background:var(--limegroen);border-color:var(--limegroen);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.def-cb.weinig:checked{background:var(--warn);border-color:var(--warn);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
+.def-cb.geen:checked{background:var(--red);border-color:var(--red);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center}
 .def-dag-info{font-size:10px;margin-left:4px}
 .def-dag-groen{color:var(--green)}
 .def-dag-geel{color:var(--warn)}
@@ -359,9 +360,10 @@ main{max-width:700px;margin:0 auto;padding:10px 10px 50px;display:flex;flex-dire
         <tr>
           <th style="text-align:center;color:var(--warn)" title="Nachtzorg">NZ</th>
           <th>Kamer</th>
-          <th style="font-size:9px;font-style:italic">(info dag t.b.v. nacht)</th>
-          <th style="font-size:9px;font-style:italic">(info dag t.b.v. nacht)</th>
-          <th style="font-size:9px;font-style:italic">(info dag t.b.v. nacht)</th>
+          <th style="text-align:center;color:var(--green)">Normaal</th>
+          <th style="text-align:center;color:var(--limegroen)">Veel</th>
+          <th style="text-align:center;color:var(--warn)">Weinig</th>
+          <th style="text-align:center;color:var(--red)" title="Raadpleeg beleid">Geen</th>
           <th>Laatste</th>
         </tr>
       </thead>
@@ -971,6 +973,7 @@ function renderDef(datum){
       <td style="text-align:center"><input class="def-cb normaal" type="checkbox" data-kamer="${k.nr}" data-hw="Normaal" ${st.hw==='Normaal'?'checked':''}></td>
       <td style="text-align:center"><input class="def-cb veel" type="checkbox" data-kamer="${k.nr}" data-hw="Veel" ${st.hw==='Veel'?'checked':''}></td>
       <td style="text-align:center"><input class="def-cb weinig" type="checkbox" data-kamer="${k.nr}" data-hw="Weinig" ${st.hw==='Weinig'?'checked':''}></td>
+      <td style="text-align:center"><input class="def-cb geen" type="checkbox" data-kamer="${k.nr}" data-hw="Geen" ${st.hw==='Geen'?'checked':''}></td>
       <td><span class="${klasse}" style="font-size:11px">${tekst}</span></td>
     `;
 
@@ -2244,7 +2247,7 @@ function openOverdracht(){
       extras.forEach((e,i)=>{ if(e && extrasNz[i]) rijen.push([k.nr, 'laat', e]); });
     });
     if(!rijen.length) return '(geen)';
-    const br=[6, 5, Math.max(20, ...rijen.map(r=>r[2].length))];
+    const br=[6, 6, Math.max(20, ...rijen.map(r=>r[2].length))];
     let t=ptLijn(br)+'\n'+ptRij(['Kamer','Dienst','Bijzonderheden'],br)+'\n'+ptLijn(br);
     rijen.forEach(r=>{ t+='\n'+ptRij(r,br); });
     t+='\n'+ptLijn(br);
@@ -2264,8 +2267,8 @@ function openOverdracht(){
     `DEFECATIE\n${ptDefecatie()}\n\n` +
     (ptMetStr ? `OVERIGE METINGEN\n${ptMetStr}\n\n` : '') +
     `BIJZONDERHEDEN PER CLIENT\n${ptBijz()}\n\n` +
-    `NOG TE DOEN / MEDEDELINGEN\n${ptMeded}\n\n` +
-    `NACHTZORG OVERIG\n${ptNZ}\n`;
+    `NOG TE DOEN / MEDEDELINGEN (+ NZ > volgende vroeg)\n${ptMeded}\n\n` +
+    `NACHTZORG OVERIG (+ NZ > volgende vroeg)\n${ptNZ}\n`;
 
   // ── HTML opbouw ────────────────────────────────────────────
   let html=`<div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -2410,8 +2413,8 @@ function odUitvoeren(mailHref){
     const nu=new Date();
     const tijdDatum=String(nu.getHours()).padStart(2,'0')+String(nu.getMinutes()).padStart(2,'0')
       +' '+String(nu.getDate()).padStart(2,'0')+String(nu.getMonth()+1).padStart(2,'0')+nu.getFullYear();
-    const kamers=KAMERS[0].nr+'-'+KAMERS[KAMERS.length-1].nr;
-    const pdfNaam=`[${tijdDatum}][${kamers}]G5.pdf`;
+    const etageCode='0.00-A';
+    const pdfNaam=`[${tijdDatum}][${etageCode}].pdf`;
 
     if(wil.pdf && typeof html2pdf !== 'undefined'){
       // Echte PDF-download via html2pdf.js
