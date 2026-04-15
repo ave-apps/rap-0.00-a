@@ -833,6 +833,45 @@ function pushDefGAS(kamerNr, hoeveelheid){
 }
 
 // ═══════════════════════════════════════════════════════════
+// GAS PUSH — METINGEN
+// ═══════════════════════════════════════════════════════════
+
+function pushMetingenGAS(kamer, meting){
+  // Stuur één meting naar GAS — DT5 kan die ophalen via pullMetingen
+  const nu   = new Date();
+  const datum = nu.getFullYear() + '-' +
+                String(nu.getMonth()+1).padStart(2,'0') + '-' +
+                String(nu.getDate()).padStart(2,'0');
+  // Gebruik dienst uit header-select
+  const dsEl  = document.getElementById('dienst-sel');
+  const dienst = dsEl ? dsEl.value : 'onbekend';
+
+  const body = {
+    action:  'pushMeting',
+    meting: {
+      kamer,
+      datum,
+      dienst,
+      ts:        meting.ts        || '',
+      auteur:    meting.auteur    || '',
+      tempL:     meting.tempL     || '',
+      tempR:     meting.tempR     || '',
+      spo2:      meting.spo2      || '',
+      tensieS:   meting.tensieS   || '',
+      tensieD:   meting.tensieD   || '',
+      hartritme: meting.hartritme || '',
+    }
+  };
+
+  fetch(GAS_URL, {
+    method:  'POST',
+    headers: {'Content-Type':'application/json'},
+    body:    JSON.stringify(body),
+    mode:    'no-cors'
+  }).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════════════════════
 // NOTIFICATIES
 // ═══════════════════════════════════════════════════════════
 
@@ -1416,6 +1455,8 @@ function renderMetingen(){
           if(!state.metingen[inp.dataset.kamer][i]) return;
           state.metingen[inp.dataset.kamer][i][inp.dataset.col] = inp.value.trim();
           autoSave();
+          // Push naar GAS zodra een veld ingevuld wordt — DT5 kan dan pullMetingen aanroepen
+          pushMetingenGAS(inp.dataset.kamer, state.metingen[inp.dataset.kamer][i]);
         });
         // ENTER → volgende kamer / volgende veld
         inp.addEventListener('keydown', e => {
